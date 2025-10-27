@@ -26,11 +26,14 @@ output:
 
 #### In this task, we discuss the $[7,4]$ Hamming code and investigate its reliability. That coding system can correct single errors in the transmission of $4$-bit messages and proceeds as follows:
 
--   given a message $\mathbf{m} = (a_1 a_2 a_3 a_4)$, we first encode it to a $7$-bit *codeword* $\mathbf{c} = \mathbf{m}G = (x_1 x_2 x_3 x_4 x_5 x_6 x_7)$, where $G$ is a $4\times 7$ *generator* matrix\
--   the codeword $\mathbf{c}$ is transmitted, and $\mathbf{r}$ is the received message\
--   $\mathbf{r}$ is checked for errors by calculating the *syndrome vector* $\mathbf{z} := \mathbf{r} H$, for a $7 \times 3$ *parity-check* matrix $H$\
+-   given a message $\mathbf{m} = (a_1 a_2 a_3 a_4)$, we first encode it to a $7$-bit *codeword* $\mathbf{c} = \mathbf{m}G = (x_1 x_2 x_3 x_4 x_5 x_6 x_7)$, where $G$ is a $4\times 7$ *generator* matrix
+
+-   the codeword $\mathbf{c}$ is transmitted, and $\mathbf{r}$ is the received message $\mathbf{r}$ is checked for errors by calculating the *syndrome vector* $\mathbf{z} := \mathbf{r} H$, for a $7 \times 3$ *parity-check* matrix $H$\
+
 -   if a single error has occurred in $\mathbf{r}$, then the binary $\mathbf{z} = (z_1 z_2 z_3)$ identifies the wrong bit no. $z_1 + 2 z_2 + 4z_3$; thus $(0 0 0)$ shows there was no error (or more than one), while $(1 1 0 )$ means the third bit (or more than one) got corrupted\
+
 -   if the error was identified, then we flip the corresponding bit in $\mathbf{r}$ to get the corrected $\mathbf{r}^* = (r_1 r_2 r_3 r_4 r_5 r_6 r_7)$;\
+
 -   the decoded message is then $\mathbf{m}^*:= (r_3r_5r_6r_7)$.
 
 #### The **generator** matrix $G$ and the **parity-check** matrix $H$ are given by
@@ -65,7 +68,7 @@ $$
 ```{r}
 # your team id number 
                           ###
-id <- 50                  ### Change to the correct id!
+id <- 5                 ### Change to the correct id!
                           ###
 set.seed(id)
 p <- id/100
@@ -77,36 +80,159 @@ G <- matrix(c(1, 1, 1, 0, 0, 0, 0,
 H <- t(matrix(c(1, 0, 1, 0, 1, 0, 1,
 		0, 1, 1, 0, 0, 1, 1,
 		0, 0, 0, 1, 1, 1, 1), nrow = 3, byrow = TRUE))
-# cat("The matrix G is: \n") 
-#G  
-#cat("The matrix H is: \n") 
-#H
-#cat("The product GH must be zero: \n")
-#(G%*%H) %%2
+cat("The matrix G is: \n")
+G
+cat("The matrix H is: \n")
+H
+cat("The product GH must be zero: \n")
+(G%*%H) %%2
 ```
 
-#### Next, generate the messages
+```{r}
+encode <- function(m) {
+  return(m %*% G %% 2)
+}
+
+apply_errors <- function(m, e) {
+  return((m + e) %% 2)
+}
+
+decode <- function(m) {
+  decode_row <- function(row) {
+    s <- (row %*% H) %% 2
+    n <- 3
+    dm <- sum(s * (2^(0:(n-1))))
+    if (dm != 0) {
+      row[dm] <- 1 - row[dm]  # flip bit
+    }
+    return(row[c(3, 5, 6, 7)])
+  }
+    return(t(apply(m, 1, decode_row)))
+}
+
+m <- matrix(c(0, 1, 0, 1), nrow = 1)
+e <- matrix(c(0, 0, 0, 1, 0, 0, 0), nrow = 1)
+c <- encode(m)
+ec <- apply_errors(c, e)
+d <- decode(ec)
+cat("Initial message: ", m, "\n")
+cat("Encoded message: ", c, "\n")
+cat("Encoded message after errors were applied: ", ec, "\n")
+cat("Decoded message: ", d, "\n")
+```
 
 ```{r}
-# generate N messages
-
 message_generator <- function(N) {
   matrix(sample(c(0,1), 4*N, replace = TRUE), nrow = N)
-}  
-messages <- message_generator(100)
-codewords <- (messages %*% G) %% 2
-```
+}
 
-#### Generate random errors; do not forget that they occur with probability $p$! Next, generate the received messages
-
-```{r}
-#  errors <- ...
-#  received <-   
+error_generator <- function(N) {
+  matrix(sample(c(0,1), 7*N, replace = TRUE, prob = c(1-p, p)), nrow = N)
+}
 ```
 
 The next steps include detecting the errors in the received messages, correcting them, and then decoding the obtained messages. After this, you can continue with calculating all the quantities of interest
 
-**Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+1.  Simulate the encoding-transmission-decoding process N times and find the estimate $\hat{p}$ of the probability $p∗$ of correct transmission of a single message m. Comment why, for large N , $\hat{p}$ is expected to be close to $p∗$
+
+```{r}
+N <- 5000000
+
+messages <- message_generator(N) # Generate N messages
+codewords <- encode(messages) # Encode messages
+errors <- error_generator(N) # Generate errors
+received <- apply_errors(codewords, errors) # Apply errors to get received messages with errors
+decoded_messages <- decode(received) # Decode messages
+```
+
+```{r}
+incorrectly_decoded_messages <- sum(apply(xor(messages, decoded_messages), 1, any))
+p_hat = incorrectly_decoded_messages/N
+print(p_hat)
+```
+
+Let each transmission of a message be a Bernoulli trial, where $$
+X_i = 
+\begin{cases} 
+1 & \text{if the $i$-th message is decoded correctly,} \\
+0 & \text{otherwise.}
+\end{cases}
+$$ All random variables $X_i$ is independent and identically distributed.
+
+Let $(x_1, x_2, ... , x_N)$ be realization of $(X_1, X_2, ... , X_N)$, then $\hat{p}$ is estimated as $\hat{p}=\frac{x_1 + ... + x_N}{N}$ for $N$ independent transitions.
+
+Then the true probability of the correct decoding is $p* = E(X_i)$
+
+Message can be decoded incorrectly only if there were 1 or 0 errors in it. Each encoded message consist of 7 bits, so probability of 2 or more errors in it is $p* = E(X_i) = 1-(1-p)^7-\binom{7}{1}p(1-p)^6 \approx 0.04438$, $p$ is probability of an error.
+
+By the strong law of large the sample mean of i.i.d. random variables converges almost surely to the expected value as $N \to \infty$
+
+$$
+\hat{p} = \frac{1}{N} \sum_{i=1}^{N} X_i \xrightarrow{a.s.} \mathbb{E}[X_i] = p^*.
+$$
+
+2.  By estimating the standard deviation of the corresponding indicator of success by the standard error of your sample and using the CLT, find the half-length $ε$ of the confidence interval $(\hat{p} − ε, \hat{p} + ε)$, which contains the true value $p∗$ with probability at least $0.95$. What choice of N guarantees that $ε \le 0.03$?
+
+Let $X_1, \dots, X_N$ be independent Bernoulli indicators of success with $$
+\mathbb{P}(X_i = 1) = 1-p^*, \quad \mathbb{P}(X_i = 0) = p^*.
+$$
+
+$$
+\mu=E(x_i)=1-p^*\\
+\sigma^2 = E(X_i^2)-E(X_i)^2=p^*(1-p^*)
+$$ The sample mean is $$
+\hat{p} = \frac{1}{N}\sum_{i=1}^{N} X_i.
+$$
+
+By the Central Limit Theorem, for large $N$, $$
+\hat{p} \sim \mathcal{N}\Big(\mu, \sigma^2\Big) \Rightarrow \hat{p} \sim \mathcal{N}\Big(p^*, \frac{p^*(1-p^*)}{N}\Big)
+$$ A $95\%$ confidence interval is $$
+(\hat{p} - z_{0.975} \cdot \mathrm{SE}(\hat{p}); \; \hat{p} + z_{0.975} \cdot \mathrm{SE}(\hat{p}))
+$$ $z_{0.975}$ is chosen because in the standart normal distribution 95% of area under curve is between $x=-z_{0.975}$ and $x=z_{0.975}$
+
+where the standard error is estimated by $$
+\mathrm{SE}(\hat{p}) \approx \sqrt{\frac{\hat{p}(1-\hat{p})}{N}}, \quad z_{0.975} \approx 1.96.
+$$ From this $\varepsilon$ is equal to $$
+\varepsilon = z_{0.975} \sqrt{\frac{\hat{p}(1-\hat{p})}{N}}.
+$$
+
+To guarantee $\varepsilon \le 0.03$, we need to solve solve for $N$: $$
+N \ge \frac{\hat{p}(1-\hat{p})}{(\varepsilon / z_{0.975})^2}.
+$$ To guarantee that $N$ is greater or equal we need to use maximum possible value for $\hat{p} (1-\hat{p})$ which is $0.25$ at point $0.5$ (can be found by finding derivative and solving equation where it is equal to 0). By plugging $\varepsilon=0.03$, $z_{0.975} \approx 1.96$ (from table) and $\hat{p}(1-\hat{p}) \le 0.25$, we get $$
+N \ge \frac{0.25}{(0.03/1.96)^2} \approx 1067.
+$$
+
+3.  Draw the histogram of the number k = 0, 1, 2, 3, 4 of errors while transmitting a 4-digit binary message. Do you think the random variable that counts the number of wrong bits in a decoded message has one of the known distributions? Justify your answer.
+
+```{r}
+number_of_errors <- apply(xor(messages, decoded_messages), 1, sum)
+
+# Normal barplot
+barplot(table(number_of_errors),
+        main = "Barplot of Bit Errors",
+        xlab = "Number of Errors")
+
+# Zoomed barplot
+barplot(table(number_of_errors),
+        main = "Barplot of Bit Errors (Zoomed)",
+        xlab = "Number of Errors",
+        ylim = c(0, 100000))
+
+# Logarithmically scaled barplot
+barplot(table(number_of_errors),
+        main = "Barplot of Bit Errors (log scale)",
+        xlab = "Number of Errors",
+        log="y")
+
+print(table(number_of_errors))
+```
+
+I don't think it is one of the known distributions because the number of errors in the decoded message depends on both the errors occurring during transmission and the logic of correction. Also, not only the number of flipped bits impacts the number of errors, but also the positions of the flipped bits. The number of errors during transmission follows a Binomial distribution with parameters $7$ and $p$ ($B(7,\,p)$). If more than one error occurs, during the correction step there are several cases: the syndrome vector may be zero (no bits flipped) or non-zero, in which case some bit is flipped (this could be a correct or incorrect bit). This logic cannot be represented as any known distribution. The combination of the Binomial distribution of transmission errors and the decoding logic therefore also cannot be represented as a standard distribution.
+
+
+**Conclusion**
+
+In this task, we simulated encoding, transmitting, and decoding of messages using Hamming(7, 4) codes, and also calculated the probability of errors. A plot showing the number of cases with different numbers of errors was produced. Simulation results were consistent with our expectations: when the probability of a bit flip during transmission is small (e.g., $0.05$), most messages are received without error or with a single error, which can be corrected. The probability of more errors is quite small (in our case $\approx 0.04438$), showing that Hamming encoding can be quite reliable (at least in some cases). One thing worth noting is that in the simulated system, each bit can be flipped at most once (for instance, a double error cannot flip the same bit twice and leave it unchanged), which may not be true for some real-world systems.
 
 ------------------------------------------------------------------------
 
@@ -223,7 +349,7 @@ curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
 
 ### Task 4.
 
-**This task consists of two parts:**
+**This task consists of two parts:\`**
 
 1.  **In this part, we discuss independence of random variables and its moments: expectation and variance.**
 
