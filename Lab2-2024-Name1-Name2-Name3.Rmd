@@ -370,14 +370,12 @@ The same applies for continuous r. v. $$
 \frac{1}{\int x f(x)\,dx},
 $$
 
-```         
 2.  Let $X \sim \mathscr{N}(\mu,\sigma^2)$ with $\mu = teamidnumber$ and $\sigma^{2} = 2\times teamidnumber+7$. Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ and $y_1,y_2,\dots,y_{100}$ of $Y := \frac{1}{X}$ to calculate the values of $\frac{1}{\overline{\textbf{X}}}$ and $\overline{\textbf{Y}}$. Comment on the received results;
-```
 
 ```{r}
 mu <- 5
 sigma <- sqrt(10)
-N <- 1000000
+N <- 500000
 
 x <- rnorm(N, mean=mu, sd=sigma)
 y <- 1/x
@@ -390,9 +388,7 @@ cat("1/E(X) = ", average_of_reciprocal_y, "\n")
 
 Here values of $\frac{1}{\overline{X}}$ and $\overline{Y}$ aren't equal what is expected as previously explained and because $\frac{1}{X}$ is not linear function that is why linearity of expectation here cannot be applied.
 
-```         
 3.  Let $X$ and $Y$ be exponentially distributed r.v.'s with parameter $\lambda = 2$. Set $Z := \log{X} + 5$. Plot the Quantile-Quantile plot and scatterplot of $X$ and $Y$. Plot the Quantile-Quantile plot and scatterplot of $X$ and $Z$. Explain the results. Comment on the difference of relations between the pairs of random variables. Which pair of r.v.'s is dependent and which one is similar?
-```
 
 ```{r}
 lambda <- 2
