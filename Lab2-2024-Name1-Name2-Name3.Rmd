@@ -1,6 +1,6 @@
 ---
 title: 'P&S-2022: Lab assignment 2'
-author: "Name1, Name2, Name3"
+author: "Name1, Name2, Mykolaichuk Nazar"
 output:
   html_document:
     df_print: paged
@@ -314,30 +314,57 @@ curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
 #### First, generate samples an sample means:
 
 ```{r}
-nu1 <- 1  # change this!
-K <- 1e3
-n <- 5
-sample_means <- colMeans(matrix(rexp(n*K, rate = nu1), nrow=n))
+nu1 <- 5 + 10
+K <- 1e4        # number of repetitions
+n <- 5          # will later change to 10 and 50
+
+sample_means <- colMeans(matrix(rexp(n*K, rate = nu1), nrow = n))
 ```
 
 #### Next, calculate the parameters of the standard normal approximation
 
 ```{r}
-mu <- 0       # change this!
-sigma <- 1    # change this!
+mu <- 1 / nu1
+sigma <- 1 / (nu1 * sqrt(n))
 ```
 
 #### We can now plot ecdf and cdf
 
 ```{r}
-xlims <- c(mu-3*sigma,mu+3*sigma)
+xlims <- c(mu - 3*sigma, mu + 3*sigma)
 Fs <- ecdf(sample_means)
-plot(Fs, 
-     xlim = xlims, 
+
+plot(Fs,
+     xlim = xlims,
      col = "blue",
      lwd = 2,
-     main = "Comparison of ecdf and cdf")
-curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
+     main = paste("Empirical vs Theoretical CDF (n =", n, ")"))
+curve(pnorm(x, mean = mu, sd = sigma),
+      col = "red", lwd = 2, add = TRUE)
+legend("bottomright", legend = c("Empirical CDF", "Normal CDF"),
+       col = c("blue", "red"), lwd = 2)
+```
+
+```{r}
+x_vals <- seq(min(sample_means), max(sample_means), length.out = 1000)
+max_diff <- max(abs(Fs(x_vals) - pnorm(x_vals, mu, sigma)))
+max_diff
+```
+
+```{r}
+# Given
+nu1 <- 5 + 10      # team id + 10
+safe_limit <- 100  # clicks per minute
+p_safe <- 0.95
+
+# Find maximal N such that P(clicks <= 100) >= 0.95
+# Number of clicks per minute ~ Poisson(lambda = nu1 * N)
+N <- 1
+while (ppois(safe_limit, lambda = nu1 * N) >= p_safe) {
+  N <- N + 1
+}
+N <- N - 1
+N
 ```
 
 **Next, proceed with all the remaining steps**
