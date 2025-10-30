@@ -1016,7 +1016,6 @@ In this task, we calculated the theoretical mean and variance of two random vari
 
 ### General summary and conclusions
 
-Summarize here what you've done, whether you solved the tasks, what difficulties you had etc.
-
+In Task 3, we simulated realizations of exponential random variables and calculated the sample means for different sample sizes. We used the Central Limit Theorem to approximate the distribution of the sample mean with a normal distribution and compared the empirical CDFs of the sample means with the theoretical normal CDFs. The task was successfully completed. The main challenge was ensuring the correct simulation of multiple samples and accurately computing the sample means for visualization, but this was resolved using matrix operations and colMeans in R.
 
 
