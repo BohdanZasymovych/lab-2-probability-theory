@@ -464,7 +464,7 @@ In this task we showed that $\mathbb{E}[1/X] \neq 1/\mathbb{E}[X]$, both theoret
 Using Q–Q plots and scatter plots, we compared pairs of random variables: $X$ and $Y$ (both exponentially distributed) and $X$ and $Z = \log(X) + 5$. $X$ and $Y$ are similar in distribution but independent, as expected. $X$ and $Z$ are dependent, since $Z$ is a function of $X$, which is clearly visible in both the Q–Q plot and the scatter plot.
 
 ```         
-------------------------------------------------------------------------
+------------------------------------------------
 ```
 
 2.  You toss a fair coin three times and a random variable $X$ records how many times the coin shows Heads. You convince your friend that they should play a game with the following payoff: every round (equivalent to three coin tosses) will cost £$1$. They will receive £$0.5$ for every coin showing Heads. What is the expected value and the variance of the random variable $Y := 0.5X-1$?
@@ -481,21 +481,75 @@ Using Q–Q plots and scatter plots, we compared pairs of random variables: $X$ 
 
         -   Uniformly distributed
 
-    2.  What are the expected value and variance of X? Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ to calculate the values of sample mean $\overline{\mathbf{X}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(x_i - \overline{x})^{2}}}{n-1}$. Comment on the results;
+Each coin toss is a Bernoulli trial with a success probability of $\frac{1}{2}$. The tosses are independent of one another. A round consists of three such independent Bernoulli trials, so $X$ follows a binomial distribution: $X \sim \mathrm{Bin}(3, \tfrac{1}{2})$
 
-        ```{r}
-        # YOUR CODE HERE
-        ```
+2.  What are the expected value and variance of X? Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ to calculate the values of sample mean $\overline{\mathbf{X}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(x_i - \overline{x})^{2}}}{n-1}$. Comment on the results;
 
-    3.  What are the expected value and variance of Y? Simulate realizations $y_1,y_2,\dots,y_{100}$ of $Y$ to calculate the values of sample mean $\overline{\mathbf{Y}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(y_i - \overline{y})^{2}}}{n-1}$. Comment on the results;
+**Expectation**\
+For a binomial random variable $X\sim\operatorname{Bin}(n,p)$ the expectation is\
+$$
+\mathbb{E}[X]=np
+$$ Here\
+$$
+\mathbb{E}[X]=3\cdot \tfrac{1}{2}= \tfrac{3}{2}=1.5
+$$
 
-        ```{r}
-        # YOUR CODE HERE
-        ```
+**Variance**\
+For a binomial random variable the variance is\
+$$
+\operatorname{Var}(X)=np(1-p)
+$$ Here\
+$$
+\operatorname{Var}(X)=3\cdot \tfrac{1}{2}\cdot \tfrac{1}{2}=\tfrac{3}{4}=0.75
+$$
 
-**Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+```{r}
+N <- 100 # size of the sample
+n <- 3
+p <- 0.5
 
-------------------------------------------------------------------------
+sample <- rbinom(N, n, p)
+sample_mean <- sum(sample)/N
+sample_variance <- sum(((sample-sample_mean)**2)/(N-1))
+
+cat("Sample mean: ", sample_mean, "\n")
+cat("Sample variance: ", sample_variance)
+```
+
+3.  What are the expected value and variance of Y? Simulate realizations $y_1,y_2,\dots,y_{100}$ of $Y$ to calculate the values of sample mean $\overline{\mathbf{Y}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(y_i - \overline{y})^{2}}}{n-1}$. Comment on the results;
+
+**Expectation**\
+Using linearity of expectation,\
+$$
+\mathbb{E}[Y] = 0.5\,\mathbb{E}[X] - 1.
+$$ Since $\mathbb{E}[X] = 1.5$,\
+$$
+\mathbb{E}[Y] = 0.5 \cdot 1.5 - 1 = -0.25.
+$$
+
+**Variance**\
+For a linear transformation $Y = aX + b$,\
+$$
+\operatorname{Var}(Y) = a^2\,\operatorname{Var}(X).
+$$ Here $a = 0.5$ and $\operatorname{Var}(X) = 0.75$, so\
+$$
+\operatorname{Var}(Y) = (0.5)^2 \cdot 0.75 = 0.1875.
+$$
+
+```{r}
+N <- 100 # size of the sample
+n <- 3
+p <- 0.5
+
+sample <- 0.5*rbinom(N, n, p)-1
+sample_mean <- sum(sample)/N
+sample_variance <- sum(((sample-sample_mean)**2)/(N-1))
+
+cat("Sample mean: ", sample_mean, "\n")
+cat("Sample variance: ", sample_variance)
+```
+
+In this task, we calculated the theoretical mean and variance of two random variables, then performed a simulation to estimate the sample mean and variance from generated data. The simulated values were close to the theoretical ones, especially when we increased sample size. This result is consistent with the Central Limit Theorem, which states that as the sample size grows, the sample mean and variance approach their true values.
 
 ### General summary and conclusions
 
