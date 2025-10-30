@@ -258,79 +258,66 @@ Assume that a medical laboratory receives $n$ samples of radioactive element ${{
 
 Task1:
 ```{r}
-# Константи
-m <- 5e-6              # маса зразка в грамах
-M <- 137               # молярна маса Cs-137 в г/моль
-N_A <- 6e23            # число Авогадро
-T_years <- 30.1        # період напіврозпаду в роках
+m <- 5e-6              
+M <- 137               
+N_A <- 6e23            
+T_years <- 30.1        
 
-# Переводимо період напіврозпаду в секунди
+
 T <- T_years * 365.25 * 24 * 3600
 
-# Кількість атомів у зразку
+
 N <- (m / M) * N_A
 
-# Активність (ймовірність розпаду одного атома за секунду)
 lambda <- log(2) / T
 
-# Параметр розподілу Пуассона
 mu <- N * lambda
 
-# Виводимо результати
-cat("Кількість атомів N =", format(N, scientific = TRUE), "\n")
-cat("Активність λ =", format(lambda, scientific = TRUE), "1/с\n")
-cat("Параметр Пуассона μ =", format(mu, scientific = TRUE), "\n")
+cat("Number of atoms N =", format(N, scientific = TRUE), "\n")
+cat("Activity λ =", format(lambda, scientific = TRUE), "1/с\n")
+cat("Poisson parameter μ =", format(mu, scientific = TRUE), "\n")
 ```
 Task 2:
 ```{r}
-# Використовуємо μ з попереднього кроку
 mu <- 15979224
-# Функція для симуляції та покращеного аналізу
 simulate_and_analyze_improved <- function(n, mu, K) {
-  # Симуляція K вибіркових середніх
   sample_means <- replicate(K, {
     x <- rpois(n, lambda = mu)
     mean(x)
   })
   
-  # Теоретичні параметри нормального розподілу
   mu_theory <- mu
   sigma_theory <- sqrt(mu / n)
   
-  # Емпірична функція розподілу
   Fs <- ecdf(sample_means)
   
-  # ======== ГРАФІК 1: ГІСТОГРАМА + НОРМАЛЬНА ЩІЛЬНІСТЬ ========
-  # Діапазон для графіків
+    # GRAPH 1: HISTOGRAM + NORMAL DENSITY:
   xlims <- c(mu_theory - 4*sigma_theory, mu_theory + 4*sigma_theory)
   
-  # Гістограма з щільністю
   hist(sample_means, 
-       probability = TRUE,  # щільність, а не частоти
+       probability = TRUE,  
        breaks = 60,
-       col = rgb(0, 0, 1, 0.3),  # напівпрозорий синій
+       col = rgb(0, 0, 1, 0.3),  
        border = "blue",
        xlim = xlims,
-       main = paste("Розподіл вибіркових середніх для n =", n),
-       xlab = "Вибіркове середнє",
-       ylab = "Щільність")
+       main = paste("Distribution of sample means for n =", n),
+       xlab = "Sample mean",
+       ylab = "Density")
   
-  # Накладаємо теоретичну нормальну щільність
   curve(dnorm(x, mean = mu_theory, sd = sigma_theory),
         col = "red",
         lwd = 3,
         add = TRUE)
   
   legend("topright",
-         legend = c("Емпірична щільність", "Теоретична N(μ, σ²)"),
+         legend = c("Empirical density", "Theoretical N(μ, σ²)"),
          fill = c(rgb(0, 0, 1, 0.3), NA),
          border = c("blue", NA),
          lty = c(NA, 1),
          col = c(NA, "red"),
          lwd = c(NA, 3))
   
-  # ======== ГРАФІК 2: CDF З ПРАВИЛЬНИМ МАСШТАБОМ ========
-  # Знаходимо область з найбільшими змінами (μ ± 3σ)
+  # GRAPH2: CDF
   xlims_cdf <- c(mu_theory - 3*sigma_theory, mu_theory + 3*sigma_theory)
   
   plot(Fs,
@@ -338,40 +325,37 @@ simulate_and_analyze_improved <- function(n, mu, K) {
        ylim = c(0, 1),
        col = "blue",
        lwd = 2,
-       main = paste("Порівняння CDF для n =", n),
-       xlab = "Вибіркове середнє",
+       main = paste("Comparison of CDFs for n =", n),
+       xlab = "Sample average",
        ylab = "F(x)",
        cex.main = 1.2)
   
-  # Теоретична CDF
   curve(pnorm(x, mean = mu_theory, sd = sigma_theory),
         col = "red",
         lwd = 2,
-        lty = 2,  # пунктирна лінія для кращого розрізнення
+        lty = 2,
         add = TRUE)
   
   legend("topleft",
-         legend = c("Емпірична F̂ₛ", "Теоретична F"),
+         legend = c("Empirical F̂ₛ", "Theoretical F"),
          col = c("blue", "red"),
          lwd = 2,
          lty = c(1, 2))
 
-  # Обчислюємо максимальну різницю
   x_sorted <- sort(sample_means)
   empirical_cdf <- Fs(x_sorted)
   theoretical_cdf <- pnorm(x_sorted, mean = mu_theory, sd = sigma_theory)
   max_diff <- max(abs(empirical_cdf - theoretical_cdf))
 
-  # Виводимо результати
-  cat("\n========================================\n")
-  cat("Результати для n =", n, "\n")
-  cat("========================================\n")
-  cat("Теоретичне μ =", mu_theory, "\n")
-  cat("Теоретичне σ =", sigma_theory, "\n")
-  cat("Емпіричне середнє =", mean(sample_means), "\n")
-  cat("Емпіричне σ =", sd(sample_means), "\n")
-  cat("Максимальна різниця |F̂ₛ - F| =", max_diff, "\n")
-  cat("========================================\n")
+
+  cat("Results for n =", n, "\n")
+
+  cat("Тheoretical μ =", mu_theory, "\n")
+  cat("Тheoretical σ =", sigma_theory, "\n")
+  cat("Empirical average =", mean(sample_means), "\n")
+  cat("Еmprical σ =", sd(sample_means), "\n")
+  cat("Max difference |F̂ₛ - F| =", max_diff, "\n")
+
   
   return(list(
     sample_means = sample_means,
@@ -381,14 +365,12 @@ simulate_and_analyze_improved <- function(n, mu, K) {
   ))
 }
 
-# ======== ВИКОНАННЯ ========
+
 set.seed(52)
 K <- 10000
 n_values <- c(5, 10, 50)
 
-# Для кожного n створюємо 3 графіки
 for (n in n_values) {
-  # Встановлюємо layout для 3 графіків в один рядок
 par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
   
   cat("\n\n")
@@ -401,56 +383,48 @@ par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
   par(mfrow = c(1, 1))
 }
 ```
-**Коментар про результати**:
-- При n = 5: різниця ≈ 0.013, наближення вже досить добре
-- При n = 10: різниця зменшується - 0.01, наближення покращується
-- При n = 50: різниця мінімальна - 0.0058, наближення відмінне
-- Висновок: Зі збільшенням n розподіл вибіркового середнього все краще наближається до нормального, що підтверджує ЦГТ
-
+**Comment on the results**:
+- At n = 5: difference ≈ 0.013, approximation is already quite good
+- At n = 10: difference decreases - 0.01, approximation improves
+- At n = 50: difference is minimal - 0.0058, approximation is excellent
+- Conclusion: With increasing selection of the mean, it gets better and better closer to normal, which confirms the CLT.
 Task3:
 
 ```{r}
-# Константи
-critical_value <- 8e8  # 8 × 10^8
-prob_threshold <- 0.05  # 1 - 0.95
+critical_value <- 8e8
+prob_threshold <- 0.05
 
-# Підхід 1: Нерівність Маркова
+# Approach 1: Markov's inequality
 # P(S > c) ≤ E[S]/c = nμ/c
 # nμ/c ≤ 0.05  =>  n ≤ 0.05 × c / μ
 
 n_markov <- floor((1 - prob_threshold) * critical_value / mu)
 
-cat("============================================================\n")
-cat("ПІДХІД 1: Нерівність Маркова\n")
-cat("============================================================\n")
-cat("Максимальне n (Марков) =", n_markov, "\n")
+cat("Approach 1: Markov's inequality\n")
+cat("Маx n =", n_markov, "\n")
 cat("E[S] = n × μ =", n_markov * mu, "\n")
-cat("Теоретична верхня межа P(S > c) ≤", n_markov * mu / critical_value, "\n")
+cat("Тheoretical upper bound P(S > c) ≤", n_markov * mu / critical_value, "\n")
 cat("\n")
 ```
 
 ```{r}
-# Підхід 2: Нерівність Чернова
-# Для S ~ Poisson(nμ), якщо c > nμ:
-# P(S > c) ≤ exp(-nμ) × (e×nμ/c)^c  (точна формула складна)
+# Approach 2: Chernov's inequality
+# For S ~ Poisson(nμ), if c > nμ:
 
-# Використаємо спрощену: знаходимо n, при якому P(S > c) ≤ 0.05
-# Шукаємо числово
 
 chernoff_bound <- function(n, mu, c) {
   lambda <- n * mu
-  if (c <= lambda) return(1)  # bound не працює
+  if (c <= lambda) return(1)
   
-  # Chernoff bound для Poisson
+  # Chernoff bound for Poisson
   delta <- (c / lambda) - 1
   bound <- exp(-delta^2 * lambda / (2 + delta))
   return(bound)
 }
 
-# Бінарний пошук для знаходження максимального n
 find_max_n_chernoff <- function(mu, c, threshold) {
   n_low <- 1
-  n_high <- floor(c / mu) * 2  # верхня межа для пошуку
+  n_high <- floor(c / mu) * 2
   
   while (n_high - n_low > 1) {
     n_mid <- floor((n_low + n_high) / 2)
@@ -468,34 +442,29 @@ find_max_n_chernoff <- function(mu, c, threshold) {
 
 n_chernoff <- find_max_n_chernoff(mu, critical_value, prob_threshold)
 
-cat("============================================================\n")
-cat("ПІДХІД 2: Нерівність Чернова\n")
-cat("============================================================\n")
-cat("Максимальне n (Чернов) =", n_chernoff, "\n")
+cat("# Approach 2: Chernov's inequality\n")
+cat("Мax n =", n_chernoff, "\n")
 cat("E[S] = n × μ =", n_chernoff * mu, "\n")
 cat("Chernoff bound P(S > c) ≤", chernoff_bound(n_chernoff, mu, critical_value), "\n")
 cat("\n")
 ```
 
 ```{r}
-# Підхід 3: Центральна Гранична Теорема (нормальне наближення)
-# S ~ N(nμ, nμ) приблизно
+# Approach 3: CLT
+# S ~ N(nμ, nμ)
 # P(S ≤ c) = Φ((c - nμ)/√(nμ)) ≥ 0.95
 # (c - nμ)/√(nμ) ≥ Φ^(-1)(0.95) = 1.645
 
 z_score <- qnorm(0.95)  # 1.644854
 
-# Розв'язуємо квадратне рівняння:
 # c - nμ ≥ z√(nμ)
 # c - nμ ≥ z√μ × √n
 # Нехай √n = t, тоді: nμ + z√μ × t - c ≤ 0
 # μt² + z√μ × t - c ≤ 0
 
-# Використаємо числовий пошук
 clt_condition <- function(n, mu, c, z) {
   mean_s <- n * mu
   sd_s <- sqrt(n * mu)
-  # P(S ≤ c) за нормальним наближенням
   prob <- pnorm(c, mean = mean_s, sd = sd_s)
   return(prob)
 }
@@ -521,43 +490,35 @@ find_max_n_clt <- function(mu, c, target_prob) {
 n_clt <- find_max_n_clt(mu, critical_value, 0.95)
 
 cat("============================================================\n")
-cat("ПІДХІД 3: Центральна Гранична Теорема (ЦГТ)\n")
+cat("Approach 3: CLT\n")
 cat("============================================================\n")
-cat("Максимальне n (ЦГТ) =", n_clt, "\n")
+cat("Маx n (ЦГТ) =", n_clt, "\n")
 cat("E[S] = n × μ =", n_clt * mu, "\n")
-cat("Теоретична P(S ≤ c) ≈", clt_condition(n_clt, mu, critical_value, z_score), "\n")
+cat("Theoretical bound P(S ≤ c) ≈", clt_condition(n_clt, mu, critical_value, z_score), "\n")
 cat("\n")
 ```
 
 ```{r}
-cat("============================================================\n")
-cat("ПОРІВНЯННЯ ТЕОРЕТИЧНИХ РЕЗУЛЬТАТІВ\n")
-cat("============================================================\n")
-cat("Нерівність Маркова:  n ≤", n_markov, "\n")
-cat("Нерівність Чернова:  n ≤", n_chernoff, "\n")
-cat("ЦГТ (найточніше):    n ≤", n_clt, "\n")
-cat("============================================================\n\n")
+cat("Comparison of results\n")
+cat("Markov's inequality:  n ≤", n_markov, "\n")
+cat("Chernov's inequality:  n ≤", n_chernoff, "\n")
+cat("CLT:    n ≤", n_clt, "\n")
 ```
 
 ```{r}
-# ======== СИМУЛЯЦІЯ ДЛЯ ПЕРЕВІРКИ ========
+# ======== SIMULATION FOR VERIFICATION ========
 
 simulate_probability <- function(n, mu, critical_value, K = 10000) {
-  # Лічильник випадків, коли сума ≤ critical_value
   success_count <- 0
   
   for (i in 1:K) {
-    # Генеруємо n зразків з Poisson(μ)
     x <- rpois(n, lambda = mu)
-    # Рахуємо суму
     s <- sum(x)
-    # Перевіряємо умову
     if (s <= critical_value) {
       success_count <- success_count + 1
     }
   }
   
-  # Емпірична ймовірність
   empirical_prob <- success_count / K
   
   return(list(
@@ -572,16 +533,13 @@ simulate_probability <- function(n, mu, critical_value, K = 10000) {
 set.seed(52)
 K_simulation <- 10000  # кількість симуляцій
 
-cat("============================================================\n")
-cat("СИМУЛЯЦІЙНА ПЕРЕВІРКА\n")
-cat("============================================================\n")
-cat("Кількість симуляцій K =", K_simulation, "\n")
-cat("Критичне значення c = 8 × 10^8\n")
-cat("Цільова ймовірність = 0.95\n\n")
+cat("SIMULATION CHECK\n")
+cat("Number of simulations K =", K_simulation, "\n")
+cat("Critical value c = 8 × 10^8\n")
+cat("Target probability = 0.95\n\n")
 
-# Перевіряємо всі три значення n
 n_values_to_check <- c(n_markov, n_chernoff, n_clt)
-n_values_to_check <- unique(n_values_to_check)  # прибираємо дублікати
+n_values_to_check <- unique(n_values_to_check)
 
 results_simulation <- list()
 
@@ -593,68 +551,60 @@ for (n_test in n_values_to_check) {
   result <- simulate_probability(n_test, mu, critical_value, K_simulation)
   results_simulation[[as.character(n_test)]] <- result
   
-  cat("Емпірична P(S ≤ c) =", result$empirical_prob, "\n")
-  cat("Успішних випадків:", result$success_count, "з", result$total_simulations, "\n")
+  cat("Еmpirical P(S ≤ c) =", result$empirical_prob, "\n")
+  cat("Successful cases:", result$success_count, "з", result$total_simulations, "\n")
   
-  # Порівняння з цільовою ймовірністю
   if (result$empirical_prob >= 0.95) {
-    cat("✓ Умова ВИКОНАНА (≥ 0.95)\n")
+    cat("Condition fulfilled (≥ 0.95)\n")
   } else {
-    cat("✗ Умова НЕ виконана (< 0.95)\n")
+      cat("Condition unfulfilled (< 0.95)\n")
   }
   cat("\n")
 }
 ```
 
 ```{r}
-# ======== ГРАФІК: P(S ≤ c) від n ========
+ #GRAPH: P(S ≤ c) of n
 
-# Діапазон n навколо знайдених значень
 n_range <- seq(max(1, n_clt - 5), n_clt + 5, by = 1)
 
-# Теоретичні ймовірності (за ЦГТ)
 theoretical_probs <- sapply(n_range, function(n) {
   mean_s <- n * mu
   sd_s <- sqrt(n * mu)
   pnorm(critical_value, mean = mean_s, sd = sd_s)
 })
 
-# Емпіричні ймовірності (симуляція для кількох точок)
 n_sample <- seq(max(1, n_clt - 3), n_clt + 3, by = 1)
 empirical_probs <- sapply(n_sample, function(n) {
   result <- simulate_probability(n, mu, critical_value, K = 5000)
   result$empirical_prob
 })
 
-# Графік
 plot(n_range, theoretical_probs,
      type = "l",
      col = "red",
      lwd = 2,
-     xlab = "n (кількість зразків)",
+     xlab = "n (number of samples)",
      ylab = "P(S ≤ 8×10⁸)",
-     main = "Залежність ймовірності від n",
+     main = "Probability as a function of n",
      ylim = c(0.85, 1))
 
-# Додаємо емпіричні точки
 points(n_sample, empirical_probs,
        col = "blue",
        pch = 19,
        cex = 1.5)
 
-# Горизонтальна лінія для цільової ймовірності
 abline(h = 0.95, col = "darkgreen", lty = 2, lwd = 2)
 
-# Вертикальні лінії для знайдених n
 abline(v = n_markov, col = "orange", lty = 3)
 abline(v = n_clt, col = "purple", lty = 3)
 
 legend("topright",
-       legend = c("Теоретична (ЦГТ)", 
-                  "Емпірична (симуляція)",
-                  "Цільова P = 0.95",
-                  paste("n (Марков) =", n_markov),
-                  paste("n (ЦГТ) =", n_clt)),
+       legend = c("Тheoretical (CLT)", 
+                  "Empirical (simulation)",
+                  "Target P = 0.95",
+                  paste("n (Markov) =", n_markov),
+                  paste("n (CLT) =", n_clt)),
        col = c("red", "blue", "darkgreen", "orange", "purple"),
        lty = c(1, NA, 2, 3, 3),
        pch = c(NA, 19, NA, NA, NA),
@@ -664,112 +614,105 @@ grid()
 ```
 
 ```{r}
-cat("============================================================\n")
-cat("ФІНАЛЬНЕ ПОРІВНЯННЯ\n")
-cat("============================================================\n")
-cat("Метод                  | Теоретичне n | Емпірична P(S≤c)\n")
-cat("------------------------------------------------------------\n")
-cat(sprintf("Нерівність Маркова     | n ≤ %2d       | %.4f\n", 
+cat("FINAL COMPARISON\n")
+cat("Method                  | Theoretical n | Еmpirical P(S≤c)\n")
+cat(sprintf("Markov's inequality     | n ≤ %2d       | %.4f\n", 
             n_markov, 
             results_simulation[[as.character(n_markov)]]$empirical_prob))
-cat(sprintf("Нерівність Чернова     | n ≤ %2d       | %.4f\n", 
+cat(sprintf("Chernov's inequality     | n ≤ %2d       | %.4f\n", 
             n_chernoff, 
             results_simulation[[as.character(n_chernoff)]]$empirical_prob))
-cat(sprintf("ЦГТ (найточніше)       | n ≤ %2d       | %.4f\n", 
+cat(sprintf("CLT       | n ≤ %2d       | %.4f\n", 
             n_clt, 
             results_simulation[[as.character(n_clt)]]$empirical_prob))
-cat("============================================================\n")
-cat("\nВИСНОВОК: Максимальне n =", n_clt, "\n")
+cat("\nConclusion: Маx n =", n_clt, "\n")
 ```
 ```{r}
-# Перевірка:
 n <- 50
 expected_sum <- n * mu
-cat("Очікувана сума E[S] =", expected_sum, "\n")
-cat("Критичне значення =", critical_value, "\n")
-cat("Різниця =", critical_value - expected_sum, "\n")
-cat("Стандартне відхилення SD[S] =", sqrt(n * mu), "\n")
+cat("E[S] =", expected_sum, "\n")
+cat("Critical value =", critical_value, "\n")
+cat("difference =", critical_value - expected_sum, "\n")
+cat("SD[S] =", sqrt(n * mu), "\n")
 ```
 
 
-============================================================
-ДЕТАЛЬНИЙ КОМЕНТАР ДО РЕЗУЛЬТАТІВ ПУНКТУ 3
-============================================================
+DETAILED COMMENTARY ON THE RESULTS OF TASK 3
 
-ТЕОРЕТИЧНІ РЕЗУЛЬТАТИ:
-----------------------
-Нерівність Маркова:  n ≤ 47
-Нерівність Чернова:  n ≤ 50
-ЦГТ (найточніше):    n ≤ 50
 
-АНАЛІЗ ТА ПОЯСНЕННЯ РЕЗУЛЬТАТІВ:
----------------------------------
+THEORETICAL RESULTS:
 
-1. ЧОМУ ВСІ ТРИ МЕТОДИ ДАЛИ БЛИЗЬКІ РЕЗУЛЬТАТИ?
+Markov's Inequality:  n ≤ 47
+Chernoff's Bound:     n ≤ 50
+CLT (most accurate):  n ≤ 50
 
-Параметр μ ≈ 1.6×10⁷ є дуже великим числом. Це означає, що в кожному 
-окремому зразку відбувається приблизно 16 мільйонів радіоактивних 
-розпадів за одну секунду.
+ANALYSIS AND EXPLANATION OF RESULTS:
 
-При такому великому μ:
-- Закон великих чисел працює виключно добре навіть для малих n
-- Відносна дисперсія дуже мала: SD[S]/E[S] ≈ 3.5×10⁻⁵
-- Сума S сильно сконцентрована навколо свого математичного сподівання
-- Навіть найгрубіша нерівність Маркова дає досить точну оцінку
+1. WHY DID ALL THREE METHODS YIELD SIMILAR RESULTS?
 
-Тому всі три методи (включаючи грубу оцінку Маркова) збігаються до 
-близьких значень n.
+The parameter μ ≈ 1.6×10⁷ is a very large number. This means that in each 
+individual sample, approximately 16 million radioactive decays occur per 
+second.
 
-2. ЧОМУ ЕМПІРИЧНА ЙМОВІРНІСТЬ ДОРІВНЮЄ 1.0000?
+With such a large μ:
+- The Law of Large Numbers works exceptionally well even for small n
+- The relative dispersion is very small: SD[S]/E[S] ≈ 3.5×10⁻⁵
+- The sum S is highly concentrated around its expected value
+- Even the crudest Markov's inequality provides a reasonably accurate estimate
 
-Для n = 50:
-- Очікувана сума: E[S] = 50 × μ ≈ 798,961,200
-- Критичне значення: c = 800,000,000
-- Різниця: c - E[S] ≈ 1,038,800 (позитивна!)
-- Стандартне відхилення: SD[S] ≈ 28,266
+Therefore, all three methods (including the crude Markov bound) converge to 
+similar values of n.
 
-Відстань від E[S] до критичного значення становить приблизно 36.75 
-стандартних відхилень! Для нормального розподілу це означає, що 
-ймовірність P(S > c) менша ніж 10⁻²⁹⁵. Тому у всіх 10,000 симуляцій 
-сума виявилася меншою за критичне значення, і емпірична ймовірність 
-склала 1.0000.
+2. WHY DOES THE EMPIRICAL PROBABILITY EQUAL 1.0000?
 
-3. ЧОМУ ГРАФІК РІЗКО ПАДАЄ МІЖ n=50 ТА n=51?
+For n = 50:
+- Expected sum: E[S] = 50 × μ ≈ 798,961,200
+- Critical value: c = 800,000,000
+- Difference: c - E[S] ≈ 1,038,800 (positive!)
+- Standard deviation: SD[S] ≈ 28,266
 
-Ключова різниця між n=50 та n=51:
+The distance from E[S] to the critical value is approximately 36.75 
+standard deviations! For a normal distribution, this means that the 
+probability P(S > c) is less than 10⁻²⁹⁵. Therefore, in all 10,000 
+simulations, the sum was less than the critical value, and the empirical 
+probability was 1.0000.
 
-При n = 50:
-- E[S] ≈ 798,961,200 < 800,000,000 (менше за поріг)
-- Сума S майже завжди буде менша за критичне значення
+3. WHY DOES THE GRAPH DROP SHARPLY BETWEEN n=50 AND n=51?
 
-При n = 51:
-- E[S] ≈ 814,940,424 > 800,000,000 (більше за поріг!)
-- Сума S майже завжди буде більша за критичне значення
+The key difference between n=50 and n=51:
 
-Різниця в одиницю n змінює очікувану суму на μ ≈ 16 мільйонів, що 
-переміщує розподіл з одного боку порогу на інший. Через велике μ 
-та малу відносну дисперсію розподіл S дуже вузький, тому перехід 
-відбувається практично миттєво.
+At n = 50:
+- E[S] ≈ 798,961,200 < 800,000,000 (below the threshold)
+- The sum S will almost always be less than the critical value
 
-4. ВЕРИФІКАЦІЯ СИМУЛЯЦІЄЮ:
+At n = 51:
+- E[S] ≈ 814,940,424 > 800,000,000 (above the threshold!)
+- The sum S will almost always be greater than the critical value
 
-Симуляція з K = 10,000 повторень підтвердила теоретичні результати:
-- Для n = 50: емпірична P(S ≤ c) = 1.0000 (умова виконана)
-- Для n = 51: емпірична P(S ≤ c) ≈ 0 (умова не виконана)
+A difference of one unit in n changes the expected sum by μ ≈ 16 million, 
+which shifts the distribution from one side of the threshold to the other. 
+Due to the large μ and small relative dispersion, the distribution of S 
+is very narrow, so the transition occurs almost instantaneously.
 
-Це повністю узгоджується з теоретичними розрахунками за всіма трьома 
-методами.
+4. VERIFICATION BY SIMULATION:
 
-ВИСНОВОК:
----------
-Максимальне значення n = 50 зразків.
+Simulation with K = 10,000 repetitions confirmed the theoretical results:
+- For n = 50: empirical P(S ≤ c) = 1.0000 (condition satisfied)
+- For n = 51: empirical P(S ≤ c) ≈ 0 (condition not satisfied)
 
-Близькість результатів усіх трьох методів (Марков, Чернов, ЦГТ) 
-пояснюється виключно великим значенням параметра μ ≈ 1.6×10⁷, що 
-забезпечує сильну концентрацію суми навколо математичного сподівання 
-та робить навіть грубі оцінки достатньо точними. Симуляційна перевірка 
-повністю підтвердила теоретичні результати.
-============================================================
+This is completely consistent with theoretical calculations using all three 
+methods.
+
+CONCLUSION:
+
+The maximum value is n = 50 samples.
+
+The similarity of results from all three methods (Markov, Chernoff, CLT) 
+is explained by the exceptionally large value of the parameter μ ≈ 1.6×10⁷, 
+which ensures strong concentration of the sum around its expected value 
+and makes even crude estimates sufficiently accurate. Simulation verification 
+fully confirmed the theoretical results.
+
 
 **Next, proceed with all the remaining steps**
 
@@ -890,4 +833,5 @@ curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
 ### General summary and conclusions
 
 Summarize here what you've done, whether you solved the tasks, what difficulties you had etc.
+
 
