@@ -311,65 +311,147 @@ curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
     -   repeat this $K$ times to get the sample $\mathbf{s}=(s_1,\dots,s_K)$ of total times until the $100^{\mathrm{th}}$ click;\
     -   estimate the probability that the location is identified as safe and compare to the desired level $0.95$
 
-#### First, generate samples an sample means:
+#### Generate samples and sample means (n = 5, 10, 50)
 
 ```{r}
-nu1 <- 5 + 10
-K <- 1e4        # number of repetitions
-n <- 5          # will later change to 10 and 50
+nu1 <- 5 + 10       # team id + 10 = 15
+K <- 1e4            # number of repetitions
+n_values <- c(5, 10, 50)
 
-sample_means <- colMeans(matrix(rexp(n*K, rate = nu1), nrow = n))
+for (n in n_values) {
+  # matrix: n rows, K columns -> colMeans returns K sample means
+  sample_means <- colMeans(matrix(rexp(n*K, rate = nu1), nrow = n))
+  
+  mu <- 1 / nu1
+  sigma <- 1 / (nu1 * sqrt(n))
+  
+  # Plot ECDF vs Normal CDF
+  xlims <- c(mu - 3*sigma, mu + 3*sigma)
+  Fs <- ecdf(sample_means)
+  
+  plot(Fs,
+       xlim = xlims,
+       col = "blue",
+       lwd = 2,
+       main = paste("Empirical vs Theoretical CDF (n =", n, ")"),
+       ylab = "CDF",
+       xlab = "Sample Mean")
+  curve(pnorm(x, mean = mu, sd = sigma),
+        col = "red", lwd = 2, add = TRUE)
+  legend("bottomright", legend = c("Empirical CDF", "Normal CDF"),
+         col = c("blue", "red"), lwd = 2)
+  
+  # Max difference between ECDF and Normal CDF
+  x_vals <- seq(min(sample_means), max(sample_means), length.out = 1000)
+  max_diff <- max(abs(Fs(x_vals) - pnorm(x_vals, mu, sigma)))
+  cat("n =", n, "Max difference between ECDF and Normal CDF:", max_diff, "\n")
+}
 ```
 
-#### Next, calculate the parameters of the standard normal approximation
+Theoretical bounds (Markov, Chernoff) and CLT analytic calculation
 
 ```{r}
-mu <- 1 / nu1
-sigma <- 1 / (nu1 * sqrt(n))
+p_safe <- 0.95
+safe_time <- 1   # 1 minute
+
+# --- 1. Markov bound ---
+# Event: S < 1  ⇒  P(S >= 1) ≥ 1 - E[S]/1 = 1 - 100/nu
+# Require 1 - 100/nu >= p_safe  ⇒  nu >= 100 / (1 - p_safe)
+nu_markov_needed <- 100 / (1 - p_safe)
+N_markov_max <- floor(nu_markov_needed / nu1)
+cat("Markov bound: need nu >=", nu_markov_needed, "=> N <=", N_markov_max, "\n")
+
+# --- 2. Chernoff bound ---
+# For exponential(ν), MGF M_X(t) = ν / (ν - t), valid for t < ν
+# For S = sum of 100 exponentials: M_S(t) = (ν / (ν - t))^100
+# Use Chernoff bound for lower tail: P(S <= 1) ≤ e^{t} * (ν / (ν + t))^{100}
+chernoff_bound_min <- function(nu) {
+  f_log <- function(t) t + 100 * (log(nu) - log(nu + t))
+  opt <- optimize(f_log, interval = c(1e-10, max(1, nu * 5)), maximum = FALSE)
+  return(exp(opt$objective))
+}
+
+target_tail <- 1 - p_safe  # = 0.05
+
+chernoff_find_nu <- function(nu) chernoff_bound_min(nu) - target_tail
+lower_nu <- 1e-4
+upper_nu <- 1e5
+
+if (chernoff_find_nu(lower_nu) > 0) {
+  nu_chernoff_max <- lower_nu
+} else if (chernoff_find_nu(upper_nu) < 0) {
+  nu_chernoff_max <- upper_nu
+} else {
+  nu_chernoff_max <- uniroot(chernoff_find_nu, interval = c(lower_nu, upper_nu))$root
+}
+
+N_chernoff_max <- floor(nu_chernoff_max / nu1)
+cat("Chernoff bound: nu_max ≈", signif(nu_chernoff_max, 5), "=> N_max =", N_chernoff_max, "\n")
+
+# --- 3. CLT approximation ---
+# S ≈ Normal(mean = 100/nu, var = 100/nu^2)
+# Want P(S >= 1) ≥ 0.95  ⇒  Φ((1 - mean)/sd) ≤ 0.05
+q <- qnorm(1 - p_safe)  # ≈ -1.644854
+nu_clt_max <- 100 + 10 * q
+N_clt_max <- floor(nu_clt_max / nu1)
+cat("CLT bound: nu_max ≈", signif(nu_clt_max, 5), "=> N_max =", N_clt_max, "\n")
 ```
 
-#### We can now plot ecdf and cdf
+#### Simulated maximal N (via Poisson number-of-clicks in 1 minute)
 
 ```{r}
-xlims <- c(mu - 3*sigma, mu + 3*sigma)
-Fs <- ecdf(sample_means)
-
-plot(Fs,
-     xlim = xlims,
-     col = "blue",
-     lwd = 2,
-     main = paste("Empirical vs Theoretical CDF (n =", n, ")"))
-curve(pnorm(x, mean = mu, sd = sigma),
-      col = "red", lwd = 2, add = TRUE)
-legend("bottomright", legend = c("Empirical CDF", "Normal CDF"),
-       col = c("blue", "red"), lwd = 2)
-```
-
-```{r}
-x_vals <- seq(min(sample_means), max(sample_means), length.out = 1000)
-max_diff <- max(abs(Fs(x_vals) - pnorm(x_vals, mu, sigma)))
-max_diff
-```
-
-```{r}
-# Given
-nu1 <- 5 + 10      # team id + 10
-safe_limit <- 100  # clicks per minute
+safe_limit <- 100
 p_safe <- 0.95
 
-# Find maximal N such that P(clicks <= 100) >= 0.95
-# Number of clicks per minute ~ Poisson(lambda = nu1 * N)
-N <- 1
-while (ppois(safe_limit, lambda = nu1 * N) >= p_safe) {
-  N <- N + 1
+N_sim <- 0
+# start from N=0 upward (safer). We'll find the maximal N that still satisfies the safety.
+repeat {
+  N_sim <- N_sim + 1
+  clicks <- rpois(K, lambda = nu1 * N_sim)
+  prob_safe <- mean(clicks <= safe_limit)
+  if (prob_safe < p_safe) {
+    N_sim <- N_sim - 1
+    break
+  }
+  # safety: keep increasing until prob drops below p_safe
+  if (N_sim > 1e5) break  # safety stop, shouldn't be needed
 }
-N <- N - 1
-N
+N_sim_max <- N_sim
+cat("Simulated (Poisson) maximum N ensuring P(#clicks <= 100) >= 0.95 is:", N_sim_max, "\n")
+```
+
+Simulate sums S = sum of 100 exponential RVs with nu = nu1 \* N_sim_max and estimate P(S \>= 1)
+
+```{r}
+# 4. Simulation of total times (sum of 100 exponential RVs)
+nu_sim <- nu1 * N_sim_max
+S_samples <- replicate(K, sum(rexp(100, rate = nu_sim)))
+p_est <- mean(S_samples >= 1)   # event S >= 1 (safe)
+cat("Using N =", N_sim_max, " (nu =", nu_sim, ") estimated P(S >= 1) =", signif(p_est,6), "\n")
+
+# also print a quick sanity comparison of the theoretical approximations:
+cat("Summary of bounds / maxima:\n")
+cat("  Markov N_max      =", N_markov_max, "\n")
+cat("  Chernoff N_max    =", N_chernoff_max, "\n")
+cat("  CLT approx N_max  =", N_clt_max, "\n")
+cat("  Simulated N_max   =", N_sim_max, "\n")
 ```
 
 **Next, proceed with all the remaining steps**
 
-**Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+-   I simulated sample means for n=5,10,50 and drew ECDF vs Gaussian CDF using \\mu = 1/\\nu_1, \\sigma\^2 = 1/(\\nu_1\^2 n). The maximal differences printed confirm the CLT: as n grows the sample-mean distribution becomes closer to normal.
+
+-   The safe condition (#clicks ≤ 100 in 1 minute) was written as S = time until the 100-th click \\ge 1 minute. I derived and computed bounds:
+
+    -   **Markov** gives a very conservative requirement (large \\nu threshold); converted to N and printed.
+
+    -   **Chernoff** bound implemented numerically (minimize over t\>0), then solved numerically for the largest \\nu (hence N) satisfying the tail requirement.
+
+    -   **CLT** yields an approximate bound (analytical).
+
+-   I found the simulated maximal N using the Poisson viewpoint (#clicks \~ Poisson(\\nu)) and verified it by simulating S = sum of 100 exponentials with \\nu = \\nu_1 N and estimating P(S\\ge1). The printed p_est should be ≈ 0.95 for the simulated N_sim_max.
+
+-   Comparison: Markov is the loosest (most conservative), Chernoff and CLT give tighter bounds; simulation gives the practical maximal N.
 
 ------------------------------------------------------------------------
 
