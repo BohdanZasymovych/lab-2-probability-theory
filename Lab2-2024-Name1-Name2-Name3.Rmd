@@ -188,7 +188,7 @@ By the Central Limit Theorem, for large $N$, $$
 \hat{p} \sim \mathcal{N}\Big(\mu, \sigma^2\Big) \Rightarrow \hat{p} \sim \mathcal{N}\Big(p^*, \frac{p^*(1-p^*)}{N}\Big)
 $$ A $95\%$ confidence interval is $$
 (\hat{p} - z_{0.975} \cdot \mathrm{SE}(\hat{p}); \; \hat{p} + z_{0.975} \cdot \mathrm{SE}(\hat{p}))
-$$ $z_{0.975}$ is chosen because in the standard normal distribution 95% of area under curve is between $x=-z_{0.975}$ and $x=z_{0.975}$
+$$ $z_{0.975}$ is chosen because in the standard normal distribution 95% of area under curve is between and $x=z_{0.975}$
 
 where the standard error is estimated by $$
 \mathrm{SE}(\hat{p}) \approx \sqrt{\frac{\hat{p}(1-\hat{p})}{N}}, \quad z_{0.975} \approx 1.96.
@@ -232,8 +232,6 @@ I don't think it is one of the known distributions because the number of errors 
 **Conclusion**
 
 In this task, we simulated encoding, transmitting, and decoding of messages using Hamming(7, 4) codes, and also calculated the probability of errors. A plot showing the number of cases with different numbers of errors was produced. Simulation results were consistent with our expectations: when the probability of a bit flip during transmission is small (e.g., $0.05$), most messages are received without error or with a single error, which can be corrected. The probability of more errors is quite small (in our case $\approx 0.04438$), showing that Hamming encoding can be quite reliable (at least in some cases). One thing worth noting is that in the simulated system, each bit can be flipped at most once (for instance, a double error cannot flip the same bit twice and leave it unchanged), which may not be true for some real-world systems.
-$$$$
-------------------------------------------------------------------------
 
 ### Task 2.
 
@@ -257,8 +255,9 @@ Assume that a medical laboratory receives $n$ samples of radioactive element ${{
     -   calculate the number of elements of the sample which are less than critical value ($8 \times 10^8$) and calculate the empirical probability; comment whether it is close to the desired level $0.95$
 
 Task1:
+
 ```{r}
-m <- 5e-6              
+m <- id*1e-6              
 M <- 137               
 N_A <- 6e23            
 T_years <- 30.1        
@@ -275,7 +274,7 @@ mu <- N * lambda
 
 cat("Number of atoms N =", format(N, scientific = TRUE), "\n")
 cat("Activity λ =", format(lambda, scientific = TRUE), "1/с\n")
-cat("Poisson parameter μ =", format(mu, scientific = TRUE), "\n")
+cat("Poisson parameter μ =", format(mu), "\n")
 ```
 Task 1  conclusion:
 For a sample with mass m = 5×10⁻⁶ g, the Poisson distribution parameter 
@@ -289,8 +288,8 @@ The obtained value of μ is really large, which will have important
 implications for further analysis.
 
 Task 2:
+
 ```{r}
-mu <- 15979224
 simulate_and_analyze_improved <- function(n, mu, K) {
   sample_means <- replicate(K, {
     x <- rpois(n, lambda = mu)
@@ -377,7 +376,6 @@ simulate_and_analyze_improved <- function(n, mu, K) {
 }
 
 
-set.seed(42)
 K <- 10000
 n_values <- c(5, 10, 50)
 
@@ -390,23 +388,22 @@ par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
   par(mfrow = c(1, 1))
 }
 ```
-**Comment on the results**:
-- At n = 5: difference ≈ 0.013, approximation is already quite good
-- At n = 10: difference decreases - 0.01, approximation improves
-- At n = 50: difference is minimal - 0.0058, approximation is excellent
-- Conclusion: With increasing selection of the mean, it gets better and better closer to normal, which confirms the CLT.
-Task3:
+
+**Comment on the results**: - At n = 5: difference ≈ 0.013, approximation is already quite good - At n = 10: difference decreases - 0.01, approximation improves - At n = 50: difference is minimal - 0.0058, approximation is excellent - Conclusion: With increasing selection of the mean, it gets better and better closer to normal, which confirms the CLT. Task3:
+
+$$
+\Pr(S_n \ge a) \le \frac{\mathbb{E}[S_n]}{a} = \frac{n \mu}{a} \le 0,05
+$$
 
 ```{r}
 critical_value <- 8e8
 prob_threshold <- 0.05
 
 # Approach 1: Markov's inequality
-# P(S > c) ≤ E[S]/c = nμ/c
-# nμ/c ≤ 0.05  =>  n ≤ 0.05 × c / μ
+# P(S > a) ≤ E[S]/a = nμ/a
+# nμ/a ≤ 0.05  =>  n ≤ 0.05 × a / μ
 
 n_markov <- floor(prob_threshold * critical_value / mu)
-
 
 cat("Approach 1: Markov's inequality\n")
 cat("Max n =", n_markov, "\n")
@@ -450,12 +447,20 @@ find_max_n_chernoff <- function(mu, c, threshold) {
 
 n_chernoff <- find_max_n_chernoff(mu, critical_value, prob_threshold)
 
-cat("# Approach 2: Chernov's inequality\n")
-cat("Мax n =", n_chernoff, "\n")
-cat("E[S] = n × μ =", n_chernoff * mu, "\n")
-cat("Chernoff bound P(S > c) ≤", chernoff_bound(n_chernoff, mu, critical_value), "\n")
-cat("\n")
+cat("Chernoff bound on n:", n_chernoff, "\n")
 ```
+
+$$
+\Pr(S_n < a) \approx \Phi\Bigg(\frac{a - n \mu}{\sqrt{n \mu}}\Bigg) \ge 0.95
+$$
+
+$$
+\Phi^{-1}(0.95) = 1.645 \implies \frac{a - n \mu}{\sqrt{n \mu}} \ge 1.645
+$$
+
+$$
+a - n \mu \ge 1.645 \sqrt{n \mu} \implies n \text{ can be solved numerically.}
+$$
 
 ```{r}
 # Approach 3: CLT
@@ -497,12 +502,20 @@ find_max_n_clt <- function(mu, c, target_prob) {
 
 n_clt <- find_max_n_clt(mu, critical_value, 0.95)
 
+
 cat("Approach 3: CLT\n")
 cat("Маx n (CLT) =", n_clt, "\n")
 cat("E[S] = n × μ =", n_clt * mu, "\n")
 cat("Theoretical bound P(S ≤ c) ≈", clt_condition(n_clt, mu, critical_value, z_score), "\n")
 cat("\n")
 ```
+
+```{r}
+z <- qnorm(0.95)
+func <- function(n) {a - n*mu - z*sqrt(n*mu)}
+
+```
+
 
 ```{r}
 cat("Comparison of results\n")
@@ -629,6 +642,7 @@ cat(sprintf("CLT       | n ≤ %2d       | %.4f\n",
             results_simulation[[as.character(n_clt)]]$empirical_prob))
 cat("\nConclusion: Маx n =", n_clt, "\n")
 ```
+
 ```{r}
 n <- 50
 expected_sum <- n * mu
@@ -638,79 +652,47 @@ cat("difference =", critical_value - expected_sum, "\n")
 cat("SD[S] =", sqrt(n * mu), "\n")
 ```
 
-
-COMMENTARY ON THE RESULTS OF TASK 3
-
-
 THEORETICAL RESULTS:
 
-Markov's Inequality:  n ≤ 2
-Chernoff's Bound:     n ≤ 50
-CLT (most accurate):  n ≤ 50
+Markov's Inequality: n ≤ 2 Chernoff's Bound: n ≤ 50 CLT (most accurate): n ≤ 50
 
 ANALYSIS AND EXPLANATION OF RESULTS:
 
-1. WHY DID Сhernov's bound and CLT YIELD SIMILAR RESULTS?
+1.  WHY DID ALL THREE METHODS YIELD SIMILAR RESULTS?
 
-The parameter μ ≈ 1.6×10⁷ is a very large number. This means that in each 
-individual sample, approximately 16 million radioactive decays occur per 
-second.
+The parameter μ ≈ 1.6×10⁷ is a very large number. This means that in each individual sample, approximately 16 million radioactive decays occur per second.
 
-With such a large μ:
-- The Law of Large Numbers works exceptionally well even for small n
-- The relative dispersion is very small: SD[S]/E[S] ≈ 3.5×10⁻⁵
-- The sum S is highly concentrated around its expected value
+With such a large μ: - The Law of Large Numbers works exceptionally well even for small n - The relative dispersion is very small: SD[S]/E[S] ≈ 3.5×10⁻⁵ - The sum S is highly concentrated around its expected value - Even the crudest Markov's inequality provides a reasonably accurate estimate
 
-2. WHY DOES THE EMPIRICAL PROBABILITY EQUAL 1.0000?
+Therefore, all three methods (including the crude Markov bound) converge to similar values of n.
 
-For n = 50:
-- Expected sum: E[S] = 50 × μ ≈ 798,961,200
-- Critical value: c = 800,000,000
-- Difference: c - E[S] ≈ 1,038,800 (positive!)
-- Standard deviation: SD[S] ≈ 28,266
+2.  WHY DOES THE EMPIRICAL PROBABILITY EQUAL 1.0000?
 
-The distance from E[S] to the critical value is approximately 36.75 
-standard deviations! For a normal distribution, this means that the 
-probability P(S > c) is less than 10⁻²⁹⁵. Therefore, in all 10,000 
-simulations, the sum was less than the critical value, and the empirical 
-probability was 1.0000.
+For n = 50: - Expected sum: E[S] = 50 × μ ≈ 798,961,200 - Critical value: c = 800,000,000 - Difference: c - E[S] ≈ 1,038,800 (positive!) - Standard deviation: SD[S] ≈ 28,266
 
-3. WHY DOES THE GRAPH DROP SHARPLY BETWEEN n=50 AND n=51?
+The distance from E[S] to the critical value is approximately 36.75 standard deviations! For a normal distribution, this means that the probability P(S \> c) is less than 10⁻²⁹⁵. Therefore, in all 10,000 simulations, the sum was less than the critical value, and the empirical probability was 1.0000.
+
+3.  WHY DOES THE GRAPH DROP SHARPLY BETWEEN n=50 AND n=51?
 
 The key difference between n=50 and n=51:
 
-At n = 50:
-- E[S] ≈ 798,961,200 < 800,000,000 (below the threshold)
-- The sum S will almost always be less than the critical value
+At n = 50: - E[S] ≈ 798,961,200 \< 800,000,000 (below the threshold) - The sum S will almost always be less than the critical value
 
-At n = 51:
-- E[S] ≈ 814,940,424 > 800,000,000 (above the threshold!)
-- The sum S will almost always be greater than the critical value
+At n = 51: - E[S] ≈ 814,940,424 \> 800,000,000 (above the threshold!) - The sum S will almost always be greater than the critical value
 
-A difference of one unit in n changes the expected sum by μ ≈ 16 million, 
-which shifts the distribution from one side of the threshold to the other. 
-Due to the large μ and small relative dispersion, the distribution of S 
-is very narrow, so the transition occurs almost instantaneously.
+A difference of one unit in n changes the expected sum by μ ≈ 16 million, which shifts the distribution from one side of the threshold to the other. Due to the large μ and small relative dispersion, the distribution of S is very narrow, so the transition occurs almost instantaneously.
 
-4. VERIFICATION BY SIMULATION:
+4.  VERIFICATION BY SIMULATION:
 
-Simulation with K = 10,000 repetitions confirmed the theoretical results:
-- For n = 50: empirical P(S ≤ c) = 1.0000 (condition satisfied)
-- For n = 51: empirical P(S ≤ c) ≈ 0 (condition not satisfied)
+Simulation with K = 10,000 repetitions confirmed the theoretical results: - For n = 50: empirical P(S ≤ c) = 1.0000 (condition satisfied) - For n = 51: empirical P(S ≤ c) ≈ 0 (condition not satisfied)
 
-This is completely consistent with theoretical calculations using all three 
-methods.
+This is completely consistent with theoretical calculations using all three methods.
 
 CONCLUSION:
 
 The maximum value is n = 50 samples.
 
-The similarity of results from all three methods (Markov, Chernoff, CLT) 
-is explained by the exceptionally large value of the parameter μ ≈ 1.6×10⁷, 
-which ensures strong concentration of the sum around its expected value 
-and makes even crude estimates sufficiently accurate. Simulation verification 
-fully confirmed the theoretical results.
-
+The similarity of results from all three methods (Markov, Chernoff, CLT) is explained by the exceptionally large value of the parameter μ ≈ 1.6×10⁷, which ensures strong concentration of the sum around its expected value and makes even crude estimates sufficiently accurate. Simulation verification fully confirmed the theoretical results.
 
 **Next, proceed with all the remaining steps**
 
@@ -1017,5 +999,3 @@ In this task, we calculated the theoretical mean and variance of two random vari
 ### General summary and conclusions
 
 In Task 3, we simulated realizations of exponential random variables and calculated the sample means for different sample sizes. We used the Central Limit Theorem to approximate the distribution of the sample mean with a normal distribution and compared the empirical CDFs of the sample means with the theoretical normal CDFs. The task was successfully completed. The main challenge was ensuring the correct simulation of multiple samples and accurately computing the sample means for visualization, but this was resolved using matrix operations and colMeans in R.
-
-
