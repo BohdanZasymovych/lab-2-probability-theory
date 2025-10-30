@@ -277,6 +277,17 @@ cat("Number of atoms N =", format(N, scientific = TRUE), "\n")
 cat("Activity λ =", format(lambda, scientific = TRUE), "1/с\n")
 cat("Poisson parameter μ =", format(mu, scientific = TRUE), "\n")
 ```
+Task 1  conclusion:
+For a sample with mass m = 5×10⁻⁶ g, the Poisson distribution parameter 
+μ ≈ 1.6×10⁷ was calculated, corresponding to the expected number of 
+radioactive decays in one sample per second. The calculation was based on:
+- Half-life period T = 30.1 years
+- Avogadro's number N_A = 6×10²³
+- Atomic mass of cesium-137 M = 137 g/mol
+
+The obtained value of μ is really large, which will have important 
+implications for further analysis.
+
 Task 2:
 ```{r}
 mu <- 15979224
@@ -348,7 +359,7 @@ simulate_and_analyze_improved <- function(n, mu, K) {
   max_diff <- max(abs(empirical_cdf - theoretical_cdf))
 
 
-  cat("Results for n =", n, "\n")
+  cat("Results for n =", n, ":\n")
 
   cat("Тheoretical μ =", mu_theory, "\n")
   cat("Тheoretical σ =", sigma_theory, "\n")
@@ -366,7 +377,7 @@ simulate_and_analyze_improved <- function(n, mu, K) {
 }
 
 
-set.seed(52)
+set.seed(42)
 K <- 10000
 n_values <- c(5, 10, 50)
 
@@ -374,12 +385,8 @@ for (n in n_values) {
 par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
   
   cat("\n\n")
-  cat(rep("=", 60), "\n")
-  cat("АНАЛІЗ ДЛЯ n =", n, "\n")
-  cat(rep("=", 60), "\n")
   result <- simulate_and_analyze_improved(n, mu, K)
   
-  # Повертаємо стандартний layout
   par(mfrow = c(1, 1))
 }
 ```
@@ -400,9 +407,8 @@ prob_threshold <- 0.05
 
 n_markov <- floor(prob_threshold * critical_value / mu)
 
-cat("============================================================\n")
+
 cat("Approach 1: Markov's inequality\n")
-cat("============================================================\n")
 cat("Max n =", n_markov, "\n")
 cat("E[S] = n × μ =", n_markov * mu, "\n")
 cat("Theoretical upper bound P(S > c) ≤", n_markov * mu / critical_value, "\n")
@@ -461,7 +467,7 @@ z_score <- qnorm(0.95)  # 1.644854
 
 # c - nμ ≥ z√(nμ)
 # c - nμ ≥ z√μ × √n
-# Нехай √n = t, тоді: nμ + z√μ × t - c ≤ 0
+# √n = t, then: nμ + z√μ × t - c ≤ 0
 # μt² + z√μ × t - c ≤ 0
 
 clt_condition <- function(n, mu, c, z) {
@@ -491,10 +497,8 @@ find_max_n_clt <- function(mu, c, target_prob) {
 
 n_clt <- find_max_n_clt(mu, critical_value, 0.95)
 
-cat("============================================================\n")
 cat("Approach 3: CLT\n")
-cat("============================================================\n")
-cat("Маx n (ЦГТ) =", n_clt, "\n")
+cat("Маx n (CLT) =", n_clt, "\n")
 cat("E[S] = n × μ =", n_clt * mu, "\n")
 cat("Theoretical bound P(S ≤ c) ≈", clt_condition(n_clt, mu, critical_value, z_score), "\n")
 cat("\n")
@@ -508,7 +512,7 @@ cat("CLT:    n ≤", n_clt, "\n")
 ```
 
 ```{r}
-# ======== SIMULATION FOR VERIFICATION ========
+# SIMULATION FOR VERIFICATION 
 
 simulate_probability <- function(n, mu, critical_value, K = 10000) {
   success_count <- 0
@@ -596,16 +600,14 @@ points(n_sample, empirical_probs,
 
 abline(h = 0.95, col = "darkgreen", lty = 2, lwd = 2)
 
-abline(v = n_markov, col = "orange", lty = 3)
 abline(v = n_clt, col = "purple", lty = 3)
 
 legend("topright",
        legend = c("Тheoretical (CLT)", 
                   "Empirical (simulation)",
                   "Target P = 0.95",
-                  paste("n (Markov) =", n_markov),
                   paste("n (CLT) =", n_clt)),
-       col = c("red", "blue", "darkgreen", "orange", "purple"),
+       col = c("red", "blue", "darkgreen", "purple"),
        lty = c(1, NA, 2, 3, 3),
        pch = c(NA, 19, NA, NA, NA),
        lwd = c(2, NA, 2, 1, 1))
@@ -637,7 +639,7 @@ cat("SD[S] =", sqrt(n * mu), "\n")
 ```
 
 
-DETAILED COMMENTARY ON THE RESULTS OF TASK 3
+COMMENTARY ON THE RESULTS OF TASK 3
 
 
 THEORETICAL RESULTS:
@@ -648,7 +650,7 @@ CLT (most accurate):  n ≤ 50
 
 ANALYSIS AND EXPLANATION OF RESULTS:
 
-1. WHY DID ALL THREE METHODS YIELD SIMILAR RESULTS?
+1. WHY DID Сhernov's bound and CLT YIELD SIMILAR RESULTS?
 
 The parameter μ ≈ 1.6×10⁷ is a very large number. This means that in each 
 individual sample, approximately 16 million radioactive decays occur per 
@@ -658,10 +660,6 @@ With such a large μ:
 - The Law of Large Numbers works exceptionally well even for small n
 - The relative dispersion is very small: SD[S]/E[S] ≈ 3.5×10⁻⁵
 - The sum S is highly concentrated around its expected value
-- Even the crudest Markov's inequality provides a reasonably accurate estimate
-
-Therefore, all three methods (including the crude Markov bound) converge to 
-similar values of n.
 
 2. WHY DOES THE EMPIRICAL PROBABILITY EQUAL 1.0000?
 
@@ -717,9 +715,31 @@ fully confirmed the theoretical results.
 **Next, proceed with all the remaining steps**
 
 **Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+============================================================
+CONCLUSION
 
+In this work, we investigated the application of the Poisson distribution to model 
+the radioactive decay process of Cesium-137 in a medical laboratory. We calculated 
+the Poisson parameter μ ≈ 1.6×10⁷ for a sample of mass 5×10⁻⁶ g, which represents 
+the expected number of decays per second in a single sample.
+
+Using simulation with K = 10,000 repetitions, we demonstrated that the 
+distribution of sample means converges rapidly to a normal distribution, even for 
+small sample sizes (n = 5, 10, 50). The excellent agreement between empirical and 
+theoretical distributions, with maximum differences less than 0.02, confirms the 
+Central Limit Theorem works exceptionally well when the Poisson parameter is large.
+
+We then determined the maximum number of samples n that can be safely processed 
+such that the total number of decays does not exceed 8×10⁸ with probability at 
+least 0.95. Using three theoretical approaches (Markov's inequality, Chernoff's 
+bound, and the Central Limit Theorem), we obtained estimates ranging from n = 2 
+to n = 50, with the CLT providing the most accurate result of n = 50. Simulation 
+fully confirmed this theoretical finding, showing a sharp transition in probability 
+between n = 50 (where the condition is satisfied) and n = 51 (where it fails). 
+This sharp transition occurs because the very large parameter μ leads to strong 
+concentration of the sum around its expected value, making the distribution 
+extremely narrow relative to its mean.
 ------------------------------------------------------------------------
-
 ### Task 3.
 
 #### In this task, we use the Central Limit Theorem approximation for continuous random variables.
