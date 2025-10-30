@@ -22,6 +22,11 @@ output:
 
 ------------------------------------------------------------------------
 
+```{r}
+id <- 5
+set.seed(id)
+```
+
 ### Task 1
 
 #### In this task, we discuss the $[7,4]$ Hamming code and investigate its reliability. That coding system can correct single errors in the transmission of $4$-bit messages and proceeds as follows:
@@ -66,11 +71,6 @@ $$
 #### First, we set the **id** of the team and define the probability $p$ and the generator and parity-check matrices $G$ and $H$
 
 ```{r}
-# your team id number 
-                          ###
-id <- 5                 ### Change to the correct id!
-                          ###
-set.seed(id)
 p <- id/100
 # matrices G and H
 G <- matrix(c(1, 1, 1, 0, 0, 0, 0,
@@ -146,7 +146,7 @@ decoded_messages <- decode(received) # Decode messages
 ```
 
 ```{r}
-incorrectly_decoded_messages <- sum(apply(xor(messages, decoded_messages), 1, any))
+incorrectly_decoded_messages <- N-sum(apply(xor(messages, decoded_messages), 1, any))
 p_hat = incorrectly_decoded_messages/N
 print(p_hat)
 ```
@@ -163,7 +163,7 @@ Let $(x_1, x_2, ... , x_N)$ be realization of $(X_1, X_2, ... , X_N)$, then $\ha
 
 Then the true probability of the correct decoding is $p* = E(X_i)$
 
-Message can be decoded incorrectly only if there were 1 or 0 errors in it. Each encoded message consist of 7 bits, so probability of 2 or more errors in it is $p* = E(X_i) = 1-(1-p)^7-\binom{7}{1}p(1-p)^6 \approx 0.04438$, $p$ is probability of an error.
+Message can be decoded incorrectly only if there were 1 or 0 errors in it. Each encoded message consist of 7 bits, so probability of 2 or more errors in it is $p* = E(X_i) = 1-(1-p)^7-\binom{7}{1}p(1-p)^6 \approx 0.955781$, $p$ is probability of an error.
 
 By the strong law of large the sample mean of i.i.d. random variables converges almost surely to the expected value as $N \to \infty$
 
@@ -232,7 +232,7 @@ I don't think it is one of the known distributions because the number of errors 
 **Conclusion**
 
 In this task, we simulated encoding, transmitting, and decoding of messages using Hamming(7, 4) codes, and also calculated the probability of errors. A plot showing the number of cases with different numbers of errors was produced. Simulation results were consistent with our expectations: when the probability of a bit flip during transmission is small (e.g., $0.05$), most messages are received without error or with a single error, which can be corrected. The probability of more errors is quite small (in our case $\approx 0.04438$), showing that Hamming encoding can be quite reliable (at least in some cases). One thing worth noting is that in the simulated system, each bit can be flipped at most once (for instance, a double error cannot flip the same bit twice and leave it unchanged), which may not be true for some real-world systems.
-
+$$$$
 ------------------------------------------------------------------------
 
 ### Task 2.
@@ -256,40 +256,489 @@ Assume that a medical laboratory receives $n$ samples of radioactive element ${{
     -   repeat this $K$ times to get the sample $\mathbf{s}=(s_1,\dots,s_K)$ of sums;
     -   calculate the number of elements of the sample which are less than critical value ($8 \times 10^8$) and calculate the empirical probability; comment whether it is close to the desired level $0.95$
 
+Task1:
 ```{r}
-lambda <- 1  # change this!
-N <- 100     # change this!
+m <- 5e-6              
+M <- 137               
+N_A <- 6e23            
+T_years <- 30.1        
+
+
+T <- T_years * 365.25 * 24 * 3600
+
+
+N <- (m / M) * N_A
+
+lambda <- log(2) / T
+
 mu <- N * lambda
-K <- 1e3
-n <- 5
-sample_means <- colMeans(matrix(rpois(n*K, lambda = mu), nrow=n))
-```
 
-#### Next, calculate the parameters of the standard normal approximation
+cat("Number of atoms N =", format(N, scientific = TRUE), "\n")
+cat("Activity λ =", format(lambda, scientific = TRUE), "1/с\n")
+cat("Poisson parameter μ =", format(mu, scientific = TRUE), "\n")
+```
+Task 1  conclusion:
+For a sample with mass m = 5×10⁻⁶ g, the Poisson distribution parameter 
+μ ≈ 1.6×10⁷ was calculated, corresponding to the expected number of 
+radioactive decays in one sample per second. The calculation was based on:
+- Half-life period T = 30.1 years
+- Avogadro's number N_A = 6×10²³
+- Atomic mass of cesium-137 M = 137 g/mol
+
+The obtained value of μ is really large, which will have important 
+implications for further analysis.
+
+Task 2:
+```{r}
+mu <- 15979224
+simulate_and_analyze_improved <- function(n, mu, K) {
+  sample_means <- replicate(K, {
+    x <- rpois(n, lambda = mu)
+    mean(x)
+  })
+  
+  mu_theory <- mu
+  sigma_theory <- sqrt(mu / n)
+  
+  Fs <- ecdf(sample_means)
+  
+    # GRAPH 1: HISTOGRAM + NORMAL DENSITY:
+  xlims <- c(mu_theory - 4*sigma_theory, mu_theory + 4*sigma_theory)
+  
+  hist(sample_means, 
+       probability = TRUE,  
+       breaks = 60,
+       col = rgb(0, 0, 1, 0.3),  
+       border = "blue",
+       xlim = xlims,
+       main = paste("Distribution of sample means for n =", n),
+       xlab = "Sample mean",
+       ylab = "Density")
+  
+  curve(dnorm(x, mean = mu_theory, sd = sigma_theory),
+        col = "red",
+        lwd = 3,
+        add = TRUE)
+  
+  legend("topright",
+         legend = c("Empirical density", "Theoretical N(μ, σ²)"),
+         fill = c(rgb(0, 0, 1, 0.3), NA),
+         border = c("blue", NA),
+         lty = c(NA, 1),
+         col = c(NA, "red"),
+         lwd = c(NA, 3))
+  
+  # GRAPH2: CDF
+  xlims_cdf <- c(mu_theory - 3*sigma_theory, mu_theory + 3*sigma_theory)
+  
+  plot(Fs,
+       xlim = xlims_cdf,
+       ylim = c(0, 1),
+       col = "blue",
+       lwd = 2,
+       main = paste("Comparison of CDFs for n =", n),
+       xlab = "Sample average",
+       ylab = "F(x)",
+       cex.main = 1.2)
+  
+  curve(pnorm(x, mean = mu_theory, sd = sigma_theory),
+        col = "red",
+        lwd = 2,
+        lty = 2,
+        add = TRUE)
+  
+  legend("topleft",
+         legend = c("Empirical F̂ₛ", "Theoretical F"),
+         col = c("blue", "red"),
+         lwd = 2,
+         lty = c(1, 2))
+
+  x_sorted <- sort(sample_means)
+  empirical_cdf <- Fs(x_sorted)
+  theoretical_cdf <- pnorm(x_sorted, mean = mu_theory, sd = sigma_theory)
+  max_diff <- max(abs(empirical_cdf - theoretical_cdf))
+
+
+  cat("Results for n =", n, ":\n")
+
+  cat("Тheoretical μ =", mu_theory, "\n")
+  cat("Тheoretical σ =", sigma_theory, "\n")
+  cat("Empirical average =", mean(sample_means), "\n")
+  cat("Еmprical σ =", sd(sample_means), "\n")
+  cat("Max difference |F̂ₛ - F| =", max_diff, "\n")
+
+  
+  return(list(
+    sample_means = sample_means,
+    mu_theory = mu_theory,
+    sigma_theory = sigma_theory,
+    max_diff = max_diff
+  ))
+}
+
+
+set.seed(42)
+K <- 10000
+n_values <- c(5, 10, 50)
+
+for (n in n_values) {
+par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+  
+  cat("\n\n")
+  result <- simulate_and_analyze_improved(n, mu, K)
+  
+  par(mfrow = c(1, 1))
+}
+```
+**Comment on the results**:
+- At n = 5: difference ≈ 0.013, approximation is already quite good
+- At n = 10: difference decreases - 0.01, approximation improves
+- At n = 50: difference is minimal - 0.0058, approximation is excellent
+- Conclusion: With increasing selection of the mean, it gets better and better closer to normal, which confirms the CLT.
+Task3:
 
 ```{r}
-mu <- 0       # change this!
-sigma <- 1    # change this!
+critical_value <- 8e8
+prob_threshold <- 0.05
+
+# Approach 1: Markov's inequality
+# P(S > c) ≤ E[S]/c = nμ/c
+# nμ/c ≤ 0.05  =>  n ≤ 0.05 × c / μ
+
+n_markov <- floor(prob_threshold * critical_value / mu)
+
+
+cat("Approach 1: Markov's inequality\n")
+cat("Max n =", n_markov, "\n")
+cat("E[S] = n × μ =", n_markov * mu, "\n")
+cat("Theoretical upper bound P(S > c) ≤", n_markov * mu / critical_value, "\n")
+cat("\n")
 ```
 
-#### We can now plot ecdf and cdf
+```{r}
+# Approach 2: Chernov's inequality
+# For S ~ Poisson(nμ), if c > nμ:
+
+
+chernoff_bound <- function(n, mu, c) {
+  lambda <- n * mu
+  if (c <= lambda) return(1)
+  
+  # Chernoff bound for Poisson
+  delta <- (c / lambda) - 1
+  bound <- exp(-delta^2 * lambda / (2 + delta))
+  return(bound)
+}
+
+find_max_n_chernoff <- function(mu, c, threshold) {
+  n_low <- 1
+  n_high <- floor(c / mu) * 2
+  
+  while (n_high - n_low > 1) {
+    n_mid <- floor((n_low + n_high) / 2)
+    bound <- chernoff_bound(n_mid, mu, c)
+    
+    if (bound <= threshold) {
+      n_low <- n_mid
+    } else {
+      n_high <- n_mid
+    }
+  }
+  
+  return(n_low)
+}
+
+n_chernoff <- find_max_n_chernoff(mu, critical_value, prob_threshold)
+
+cat("# Approach 2: Chernov's inequality\n")
+cat("Мax n =", n_chernoff, "\n")
+cat("E[S] = n × μ =", n_chernoff * mu, "\n")
+cat("Chernoff bound P(S > c) ≤", chernoff_bound(n_chernoff, mu, critical_value), "\n")
+cat("\n")
+```
 
 ```{r}
-xlims <- c(mu-3*sigma,mu+3*sigma)
-Fs <- ecdf(sample_means)
-plot(Fs, 
-     xlim = xlims, 
-     ylim = c(0,1),
-     col = "blue",
+# Approach 3: CLT
+# S ~ N(nμ, nμ)
+# P(S ≤ c) = Φ((c - nμ)/√(nμ)) ≥ 0.95
+# (c - nμ)/√(nμ) ≥ Φ^(-1)(0.95) = 1.645
+
+z_score <- qnorm(0.95)  # 1.644854
+
+# c - nμ ≥ z√(nμ)
+# c - nμ ≥ z√μ × √n
+# √n = t, then: nμ + z√μ × t - c ≤ 0
+# μt² + z√μ × t - c ≤ 0
+
+clt_condition <- function(n, mu, c, z) {
+  mean_s <- n * mu
+  sd_s <- sqrt(n * mu)
+  prob <- pnorm(c, mean = mean_s, sd = sd_s)
+  return(prob)
+}
+
+find_max_n_clt <- function(mu, c, target_prob) {
+  n_low <- 1
+  n_high <- floor(c / mu) * 2
+  
+  while (n_high - n_low > 1) {
+    n_mid <- floor((n_low + n_high) / 2)
+    prob <- clt_condition(n_mid, mu, c, z_score)
+    
+    if (prob >= target_prob) {
+      n_low <- n_mid
+    } else {
+      n_high <- n_mid
+    }
+  }
+  
+  return(n_low)
+}
+
+n_clt <- find_max_n_clt(mu, critical_value, 0.95)
+
+cat("Approach 3: CLT\n")
+cat("Маx n (CLT) =", n_clt, "\n")
+cat("E[S] = n × μ =", n_clt * mu, "\n")
+cat("Theoretical bound P(S ≤ c) ≈", clt_condition(n_clt, mu, critical_value, z_score), "\n")
+cat("\n")
+```
+
+```{r}
+cat("Comparison of results\n")
+cat("Markov's inequality:  n ≤", n_markov, "\n")
+cat("Chernov's inequality:  n ≤", n_chernoff, "\n")
+cat("CLT:    n ≤", n_clt, "\n")
+```
+
+```{r}
+# SIMULATION FOR VERIFICATION 
+
+simulate_probability <- function(n, mu, critical_value, K = 10000) {
+  success_count <- 0
+  
+  for (i in 1:K) {
+    x <- rpois(n, lambda = mu)
+    s <- sum(x)
+    if (s <= critical_value) {
+      success_count <- success_count + 1
+    }
+  }
+  
+  empirical_prob <- success_count / K
+  
+  return(list(
+    n = n,
+    empirical_prob = empirical_prob,
+    success_count = success_count,
+    total_simulations = K
+  ))
+}
+
+
+set.seed(52)
+K_simulation <- 10000
+
+cat("SIMULATION CHECK\n")
+cat("Number of simulations K =", K_simulation, "\n")
+cat("Critical value c = 8 × 10^8\n")
+cat("Target probability = 0.95\n\n")
+
+n_values_to_check <- c(n_markov, n_chernoff, n_clt)
+n_values_to_check <- unique(n_values_to_check)
+
+results_simulation <- list()
+
+for (n_test in n_values_to_check) {
+  cat("Testing n =", n_test, ":\n")
+
+  result <- simulate_probability(n_test, mu, critical_value, K_simulation)
+  results_simulation[[as.character(n_test)]] <- result
+  
+  cat("Еmpirical P(S ≤ c) =", result$empirical_prob, "\n")
+  cat("Successful cases:", result$success_count, "з", result$total_simulations, "\n")
+  
+  if (result$empirical_prob >= 0.95) {
+    cat("Condition fulfilled (≥ 0.95)\n")
+  } else {
+      cat("Condition unfulfilled (< 0.95)\n")
+  }
+  cat("\n")
+}
+```
+
+```{r}
+ #GRAPH: P(S ≤ c) of n
+
+n_range <- seq(max(1, n_clt - 5), n_clt + 5, by = 1)
+
+theoretical_probs <- sapply(n_range, function(n) {
+  mean_s <- n * mu
+  sd_s <- sqrt(n * mu)
+  pnorm(critical_value, mean = mean_s, sd = sd_s)
+})
+
+n_sample <- seq(max(1, n_clt - 3), n_clt + 3, by = 1)
+empirical_probs <- sapply(n_sample, function(n) {
+  result <- simulate_probability(n, mu, critical_value, K = 5000)
+  result$empirical_prob
+})
+
+plot(n_range, theoretical_probs,
+     type = "l",
+     col = "red",
      lwd = 2,
-     main = "Comparison of ecdf and cdf")
-curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
+     xlab = "n (number of samples)",
+     ylab = "P(S ≤ 8×10⁸)",
+     main = "Probability as a function of n",
+     ylim = c(0.85, 1))
+
+points(n_sample, empirical_probs,
+       col = "blue",
+       pch = 19,
+       cex = 1.5)
+
+abline(h = 0.95, col = "darkgreen", lty = 2, lwd = 2)
+
+abline(v = n_clt, col = "purple", lty = 3)
+
+legend("topright",
+       legend = c("Тheoretical (CLT)", 
+                  "Empirical (simulation)",
+                  "Target P = 0.95",
+                  paste("n (CLT) =", n_clt)),
+       col = c("red", "blue", "darkgreen", "purple"),
+       lty = c(1, NA, 2, 3, 3),
+       pch = c(NA, 19, NA, NA, NA),
+       lwd = c(2, NA, 2, 1, 1))
+
+grid()
 ```
+
+```{r}
+cat("FINAL COMPARISON\n")
+cat("Method                  | Theoretical n | Еmpirical P(S≤c)\n")
+cat(sprintf("Markov's inequality     | n ≤ %2d       | %.4f\n", 
+            n_markov, 
+            results_simulation[[as.character(n_markov)]]$empirical_prob))
+cat(sprintf("Chernov's inequality     | n ≤ %2d       | %.4f\n", 
+            n_chernoff, 
+            results_simulation[[as.character(n_chernoff)]]$empirical_prob))
+cat(sprintf("CLT       | n ≤ %2d       | %.4f\n", 
+            n_clt, 
+            results_simulation[[as.character(n_clt)]]$empirical_prob))
+cat("\nConclusion: Маx n =", n_clt, "\n")
+```
+```{r}
+n <- 50
+expected_sum <- n * mu
+cat("E[S] =", expected_sum, "\n")
+cat("Critical value =", critical_value, "\n")
+cat("difference =", critical_value - expected_sum, "\n")
+cat("SD[S] =", sqrt(n * mu), "\n")
+```
+
+
+COMMENTARY ON THE RESULTS OF TASK 3
+
+
+THEORETICAL RESULTS:
+
+Markov's Inequality:  n ≤ 2
+Chernoff's Bound:     n ≤ 50
+CLT (most accurate):  n ≤ 50
+
+ANALYSIS AND EXPLANATION OF RESULTS:
+
+1. WHY DID Сhernov's bound and CLT YIELD SIMILAR RESULTS?
+
+The parameter μ ≈ 1.6×10⁷ is a very large number. This means that in each 
+individual sample, approximately 16 million radioactive decays occur per 
+second.
+
+With such a large μ:
+- The Law of Large Numbers works exceptionally well even for small n
+- The relative dispersion is very small: SD[S]/E[S] ≈ 3.5×10⁻⁵
+- The sum S is highly concentrated around its expected value
+
+2. WHY DOES THE EMPIRICAL PROBABILITY EQUAL 1.0000?
+
+For n = 50:
+- Expected sum: E[S] = 50 × μ ≈ 798,961,200
+- Critical value: c = 800,000,000
+- Difference: c - E[S] ≈ 1,038,800 (positive!)
+- Standard deviation: SD[S] ≈ 28,266
+
+The distance from E[S] to the critical value is approximately 36.75 
+standard deviations! For a normal distribution, this means that the 
+probability P(S > c) is less than 10⁻²⁹⁵. Therefore, in all 10,000 
+simulations, the sum was less than the critical value, and the empirical 
+probability was 1.0000.
+
+3. WHY DOES THE GRAPH DROP SHARPLY BETWEEN n=50 AND n=51?
+
+The key difference between n=50 and n=51:
+
+At n = 50:
+- E[S] ≈ 798,961,200 < 800,000,000 (below the threshold)
+- The sum S will almost always be less than the critical value
+
+At n = 51:
+- E[S] ≈ 814,940,424 > 800,000,000 (above the threshold!)
+- The sum S will almost always be greater than the critical value
+
+A difference of one unit in n changes the expected sum by μ ≈ 16 million, 
+which shifts the distribution from one side of the threshold to the other. 
+Due to the large μ and small relative dispersion, the distribution of S 
+is very narrow, so the transition occurs almost instantaneously.
+
+4. VERIFICATION BY SIMULATION:
+
+Simulation with K = 10,000 repetitions confirmed the theoretical results:
+- For n = 50: empirical P(S ≤ c) = 1.0000 (condition satisfied)
+- For n = 51: empirical P(S ≤ c) ≈ 0 (condition not satisfied)
+
+This is completely consistent with theoretical calculations using all three 
+methods.
+
+CONCLUSION:
+
+The maximum value is n = 50 samples.
+
+The similarity of results from all three methods (Markov, Chernoff, CLT) 
+is explained by the exceptionally large value of the parameter μ ≈ 1.6×10⁷, 
+which ensures strong concentration of the sum around its expected value 
+and makes even crude estimates sufficiently accurate. Simulation verification 
+fully confirmed the theoretical results.
+
 
 **Next, proceed with all the remaining steps**
 
 **Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+============================================================
+CONCLUSION
 
+In this work, we investigated the application of the Poisson distribution to model 
+the radioactive decay process of Cesium-137 in a medical laboratory. We calculated 
+the Poisson parameter μ ≈ 1.6×10⁷ for a sample of mass 5×10⁻⁶ g, which represents 
+the expected number of decays per second in a single sample.
+
+Using simulation with K = 10,000 repetitions, we demonstrated that the 
+distribution of sample means converges rapidly to a normal distribution, even for 
+small sample sizes (n = 5, 10, 50). The excellent agreement between empirical and 
+theoretical distributions, with maximum differences less than 0.02, confirms the 
+Central Limit Theorem works exceptionally well when the Poisson parameter is large.
+
+We then determined the maximum number of samples n that can be safely processed 
+such that the total number of decays does not exceed 8×10⁸ with probability at 
+least 0.95. Using three theoretical approaches (Markov's inequality, Chernoff's 
+bound, and the Central Limit Theorem), we obtained estimates ranging from n = 2 
+to n = 50, with the CLT providing the most accurate result of n = 50. Simulation 
+fully confirmed this theoretical finding, showing a sharp transition in probability 
+between n = 50 (where the condition is satisfied) and n = 51 (where it fails). 
+This sharp transition occurs because the very large parameter μ leads to strong 
+concentration of the sum around its expected value, making the distribution 
+extremely narrow relative to its mean.
 ------------------------------------------------------------------------
 
 ### Task 3.
@@ -457,124 +906,29 @@ cat("  Simulated N_max   =", N_sim_max, "\n")
 
 ### Task 4.
 
-**This task consists of two parts:\`**
+**This task consists of two parts:**
 
 1.  **In this part, we discuss independence of random variables and its moments: expectation and variance.**
 
     1.  Suppose we have a random variable $X$. Explain why $\mathbb{E}(\frac{1}{X}) \neq \frac{1}{\mathbb{E(X)}}$;
 
-For discrete case $$
-    \mathbb{E}(\frac{1}{X}) = \sum_{x_i} \frac{p_X(x_i)}{x_i} = \frac{p_X(x_1)}{x_1} + ... + \frac{p_X(x_n)}{x_n},\\
-    \frac{1}{\mathbb{E}(X)} = \frac{1}{\sum_{x_i}p_X(x_i)x_i} = \frac{1}{p_X(x_1)x_1 + ... + p_X(x_n)x_n}\\
-     \text{In general, } \frac{p_X(x_1)}{x_1} + ... + \frac{p_X(x_n)}{x_n} \ne \frac{1}{p_X(x_1)x_1 + ... + p_X(x_n)x_n}
-$$ So $\mathbb{E}(\frac{1}{X}) \neq \frac{1}{\mathbb{E(X)}}$ for discrete r. v.
+    2.  Let $X \sim \mathscr{N}(\mu,\sigma^2)$ with $\mu = teamidnumber$ and $\sigma^{2} = 2\times teamidnumber+7$. Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ and $y_1,y_2,\dots,y_{100}$ of $Y := \frac{1}{X}$ to calculate the values of $\frac{1}{\overline{\textbf{X}}}$ and $\overline{\textbf{Y}}$. Comment on the received results;
 
-The same applies for continuous r. v. $$
-\mathbb{E}\!\left[\frac{1}{X}\right] = \int_{-\infty}^{\infty} \frac{1}{x} f(x)\,dx, 
-\qquad
-\frac{1}{\mathbb{E}[X]} = \frac{1}{\int_{-\infty}^{\infty} x f(x)\,dx}.\\
-\text{In general, } 
-\int \frac{1}{x} f(x)\,dx 
-\neq 
-\frac{1}{\int x f(x)\,dx},
-$$
+        ```{r}
+        mu <- 0 #change this!
+        sigma <- 1 #change this
+        N <- 100
 
-2.  Let $X \sim \mathscr{N}(\mu,\sigma^2)$ with $\mu = teamidnumber$ and $\sigma^{2} = 2\times teamidnumber+7$. Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ and $y_1,y_2,\dots,y_{100}$ of $Y := \frac{1}{X}$ to calculate the values of $\frac{1}{\overline{\textbf{X}}}$ and $\overline{\textbf{Y}}$. Comment on the received results;
+        # YOUR CODE HERE
+        ```
 
-```{r}
-mu <- 5
-sigma <- sqrt(10)
-N <- 500000
+    3.  Let $X$ and $Y$ be exponentially distributed r.v.'s with parameter $\lambda = 2$. Set $Z := \log{X} + 5$. Plot the Quantile-Quantile plot and scatterplot of $X$ and $Y$. Plot the Quantile-Quantile plot and scatterplot of $X$ and $Z$. Explain the results. Comment on the difference of relations between the pairs of random variables. Which pair of r.v.'s is dependent and which one is similar?
 
-x <- rnorm(N, mean=mu, sd=sigma)
-y <- 1/x
+        ```{r}
+        # YOUR CODE HERE
+        ```
 
-reciprocal_of_average_x = 1/mean(x)
-average_of_reciprocal_y = mean(y)
-cat("E(1/X) = ", reciprocal_of_average_x, "\n")
-cat("1/E(X) = ", average_of_reciprocal_y, "\n")
-```
-
-Here values of $\frac{1}{\overline{X}}$ and $\overline{Y}$ aren't equal what is expected as previously explained and because $\frac{1}{X}$ is not linear function that is why linearity of expectation here cannot be applied.
-
-3.  Let $X$ and $Y$ be exponentially distributed r.v.'s with parameter $\lambda = 2$. Set $Z := \log{X} + 5$. Plot the Quantile-Quantile plot and scatterplot of $X$ and $Y$. Plot the Quantile-Quantile plot and scatterplot of $X$ and $Z$. Explain the results. Comment on the difference of relations between the pairs of random variables. Which pair of r.v.'s is dependent and which one is similar?
-
-```{r}
-lambda <- 2
-x <- rexp(N, rate=lambda)
-y <- rexp(N, rate=lambda)
-z <- log(x) + 5
-```
-
-```{r}
-qqplot(x, y,
-       main = "Q–Q Plot of X and Y",
-       xlab = "Quantiles of X",
-       ylab = "Quantiles of Y",
-       pch = 19, col = "blue")
-abline(0, 1, col = "red", lwd = 2)
-legend("topleft", 
-       legend = "y = x",
-       col = "red", 
-       lwd = 2,
-       bty = "n")
-
-
-qqplot(x, z,
-       main = "Q–Q Plot of X and Z",
-       xlab = "Quantiles of X",
-       ylab = "Quantiles of Z",
-       pch = 19, col = "blue")
-abline(0, 1, col = "red", lwd = 2)
-legend("topleft", 
-       legend = "y = x",
-       col = "red", 
-       lwd = 2,
-       bty = "n")
-```
-
-Quantile-Quantile plot shows values of the same quantiles for $X$ and $Y$. If the points lie along the line $y = x$, it means that for the same probability level $p$, the $p$-quantiles of $X$ and $Y$ are very close. Therefore, $X$ and $Y$ are similar.
-
-For the random variables $X$ and $Y$, the points on the Q-Q plot lie approximately along $y = x$, so these random variables are similar, which is expected since they have the same distribution.
-
-For $X$ and $Z$, the points on the Q-Q plot lie approximately along $z = \log(x) + 5$, because $Z = \log(X) + 5$. Thus, $X$ and $Z$ are not similar, as they follow different distributions.
-
-```{r}
-plot(x, y, type = "p", 
-     main = "Scatter Plot of X and Y",
-     xlab = "X",
-     ylab = "Y",
-     col = "blue", pch = 19)
-
-
-plot(x, z, type = "p", 
-     main = "Scatter Plot of X and Z",
-     xlab = "X",
-     ylab = "Z",
-     col = "blue", pch = 19)
-curve(log(x) + 5, from = 0.1, to = 10, add = TRUE, col = "red", lwd = 2)
-legend("topleft", 
-       legend = "z = log(x) + 5",
-       col = "red", 
-       lwd = 2,
-       bty = "n")
-```
-
-A scatter plot displays pairs of observations $(x_i, y_i)$ as points on a Cartesian plane. It shows how two random variables are related. If the points lie along the graph of some function, the variables are dependent; if there is no clear functional relationship, they may be independent or only weakly related.
-
-For $X$ and $Y$, the points are scattered across the Cartesian plane (more points for smaller $x$ and $y$ and fewer points for larger $x$ and $y$, since the exponential distribution assigns lower probability to larger values), and there is no visible functional relationship. Therefore, $X$ and $Y$ are independent, which was expected.
-
-For $X$ and $Z$, the points lie approximately along the graph of $z = \log(x) + 5$, so $X$ and $Z$ are dependent, which is also expected since $Z$ is defined through $X$.
-
-**Conclusion:**
-
-In this task we showed that $\mathbb{E}[1/X] \neq 1/\mathbb{E}[X]$, both theoretically and empirically, because the reciprocal is a nonlinear function and the linearity of expectation does not apply.
-
-Using Q–Q plots and scatter plots, we compared pairs of random variables: $X$ and $Y$ (both exponentially distributed) and $X$ and $Z = \log(X) + 5$. $X$ and $Y$ are similar in distribution but independent, as expected. $X$ and $Z$ are dependent, since $Z$ is a function of $X$, which is clearly visible in both the Q–Q plot and the scatter plot.
-
-```         
-------------------------------------------------------------------------
-```
+    ------------------------------------------------------------------------
 
 2.  You toss a fair coin three times and a random variable $X$ records how many times the coin shows Heads. You convince your friend that they should play a game with the following payoff: every round (equivalent to three coin tosses) will cost £$1$. They will receive £$0.5$ for every coin showing Heads. What is the expected value and the variance of the random variable $Y := 0.5X-1$?
 
@@ -590,22 +944,79 @@ Using Q–Q plots and scatter plots, we compared pairs of random variables: $X$ 
 
         -   Uniformly distributed
 
-    2.  What are the expected value and variance of X? Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ to calculate the values of sample mean $\overline{\mathbf{X}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(x_i - \overline{x})^{2}}}{n-1}$. Comment on the results;
+Each coin toss is a Bernoulli trial with a success probability of $\frac{1}{2}$. The tosses are independent of one another. A round consists of three such independent Bernoulli trials, so $X$ follows a binomial distribution: $X \sim \mathrm{Bin}(3, \tfrac{1}{2})$
 
-        ```{r}
-        # YOUR CODE HERE
-        ```
+2.  What are the expected value and variance of X? Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ to calculate the values of sample mean $\overline{\mathbf{X}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(x_i - \overline{x})^{2}}}{n-1}$. Comment on the results;
 
-    3.  What are the expected value and variance of Y? Simulate realizations $y_1,y_2,\dots,y_{100}$ of $Y$ to calculate the values of sample mean $\overline{\mathbf{Y}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(y_i - \overline{y})^{2}}}{n-1}$. Comment on the results;
+**Expectation**\
+For a binomial random variable $X\sim\operatorname{Bin}(n,p)$ the expectation is\
+$$
+\mathbb{E}[X]=np
+$$ Here\
+$$
+\mathbb{E}[X]=3\cdot \tfrac{1}{2}= \tfrac{3}{2}=1.5
+$$
 
-        ```{r}
-        # YOUR CODE HERE
-        ```
+**Variance**\
+For a binomial random variable the variance is\
+$$
+\operatorname{Var}(X)=np(1-p)
+$$ Here\
+$$
+\operatorname{Var}(X)=3\cdot \tfrac{1}{2}\cdot \tfrac{1}{2}=\tfrac{3}{4}=0.75
+$$
 
-**Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+```{r}
+N <- 100 # size of the sample
+n <- 3
+p <- 0.5
 
-------------------------------------------------------------------------
+sample <- rbinom(N, n, p)
+sample_mean <- sum(sample)/N
+sample_variance <- sum(((sample-sample_mean)**2)/(N-1))
+
+cat("Sample mean: ", sample_mean, "\n")
+cat("Sample variance: ", sample_variance)
+```
+
+3.  What are the expected value and variance of Y? Simulate realizations $y_1,y_2,\dots,y_{100}$ of $Y$ to calculate the values of sample mean $\overline{\mathbf{Y}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(y_i - \overline{y})^{2}}}{n-1}$. Comment on the results;
+
+**Expectation**\
+Using linearity of expectation,\
+$$
+\mathbb{E}[Y] = 0.5\,\mathbb{E}[X] - 1.
+$$ Since $\mathbb{E}[X] = 1.5$,\
+$$
+\mathbb{E}[Y] = 0.5 \cdot 1.5 - 1 = -0.25.
+$$
+
+**Variance**\
+For a linear transformation $Y = aX + b$,\
+$$
+\operatorname{Var}(Y) = a^2\,\operatorname{Var}(X).
+$$ Here $a = 0.5$ and $\operatorname{Var}(X) = 0.75$, so\
+$$
+\operatorname{Var}(Y) = (0.5)^2 \cdot 0.75 = 0.1875.
+$$
+
+```{r}
+N <- 100 # size of the sample
+n <- 3
+p <- 0.5
+
+sample <- 0.5*rbinom(N, n, p)-1
+sample_mean <- sum(sample)/N
+sample_variance <- sum(((sample-sample_mean)**2)/(N-1))
+
+cat("Sample mean: ", sample_mean, "\n")
+cat("Sample variance: ", sample_variance)
+```
+
+In this task, we calculated the theoretical mean and variance of two random variables, then performed a simulation to estimate the sample mean and variance from generated data. The simulated values were close to the theoretical ones, especially when we increased sample size. This result is consistent with the Central Limit Theorem, which states that as the sample size grows, the sample mean and variance approach their true values.
 
 ### General summary and conclusions
 
 Summarize here what you've done, whether you solved the tasks, what difficulties you had etc.
+
+
+
