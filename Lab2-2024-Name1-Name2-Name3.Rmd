@@ -22,6 +22,11 @@ output:
 
 ------------------------------------------------------------------------
 
+```{r}
+id <- 5
+set.seed(id)
+```
+
 ### Task 1
 
 #### In this task, we discuss the $[7,4]$ Hamming code and investigate its reliability. That coding system can correct single errors in the transmission of $4$-bit messages and proceeds as follows:
@@ -66,11 +71,6 @@ $$
 #### First, we set the **id** of the team and define the probability $p$ and the generator and parity-check matrices $G$ and $H$
 
 ```{r}
-# your team id number 
-                          ###
-id <- 5                 ### Change to the correct id!
-                          ###
-set.seed(id)
 p <- id/100
 # matrices G and H
 G <- matrix(c(1, 1, 1, 0, 0, 0, 0,
@@ -146,7 +146,7 @@ decoded_messages <- decode(received) # Decode messages
 ```
 
 ```{r}
-incorrectly_decoded_messages <- sum(apply(xor(messages, decoded_messages), 1, any))
+incorrectly_decoded_messages <- N-sum(apply(xor(messages, decoded_messages), 1, any))
 p_hat = incorrectly_decoded_messages/N
 print(p_hat)
 ```
@@ -163,7 +163,7 @@ Let $(x_1, x_2, ... , x_N)$ be realization of $(X_1, X_2, ... , X_N)$, then $\ha
 
 Then the true probability of the correct decoding is $p* = E(X_i)$
 
-Message can be decoded incorrectly only if there were 1 or 0 errors in it. Each encoded message consist of 7 bits, so probability of 2 or more errors in it is $p* = E(X_i) = 1-(1-p)^7-\binom{7}{1}p(1-p)^6 \approx 0.04438$, $p$ is probability of an error.
+Message can be decoded incorrectly only if there were 1 or 0 errors in it. Each encoded message consist of 7 bits, so probability of 2 or more errors in it is $p* = E(X_i) = 1-(1-p)^7-\binom{7}{1}p(1-p)^6 \approx 0.955781$, $p$ is probability of an error.
 
 By the strong law of large the sample mean of i.i.d. random variables converges almost surely to the expected value as $N \to \infty$
 
