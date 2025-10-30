@@ -398,12 +398,14 @@ prob_threshold <- 0.05
 # P(S > c) ≤ E[S]/c = nμ/c
 # nμ/c ≤ 0.05  =>  n ≤ 0.05 × c / μ
 
-n_markov <- floor((1 - prob_threshold) * critical_value / mu)
+n_markov <- floor(prob_threshold * critical_value / mu)
 
+cat("============================================================\n")
 cat("Approach 1: Markov's inequality\n")
-cat("Маx n =", n_markov, "\n")
+cat("============================================================\n")
+cat("Max n =", n_markov, "\n")
 cat("E[S] = n × μ =", n_markov * mu, "\n")
-cat("Тheoretical upper bound P(S > c) ≤", n_markov * mu / critical_value, "\n")
+cat("Theoretical upper bound P(S > c) ≤", n_markov * mu / critical_value, "\n")
 cat("\n")
 ```
 
@@ -529,9 +531,9 @@ simulate_probability <- function(n, mu, critical_value, K = 10000) {
   ))
 }
 
-# Налаштування
+
 set.seed(52)
-K_simulation <- 10000  # кількість симуляцій
+K_simulation <- 10000
 
 cat("SIMULATION CHECK\n")
 cat("Number of simulations K =", K_simulation, "\n")
@@ -544,10 +546,8 @@ n_values_to_check <- unique(n_values_to_check)
 results_simulation <- list()
 
 for (n_test in n_values_to_check) {
-  cat("------------------------------------------------------------\n")
-  cat("Тестуємо n =", n_test, "\n")
-  cat("------------------------------------------------------------\n")
-  
+  cat("Testing n =", n_test, ":\n")
+
   result <- simulate_probability(n_test, mu, critical_value, K_simulation)
   results_simulation[[as.character(n_test)]] <- result
   
@@ -642,7 +642,7 @@ DETAILED COMMENTARY ON THE RESULTS OF TASK 3
 
 THEORETICAL RESULTS:
 
-Markov's Inequality:  n ≤ 47
+Markov's Inequality:  n ≤ 2
 Chernoff's Bound:     n ≤ 50
 CLT (most accurate):  n ≤ 50
 
@@ -833,5 +833,6 @@ curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
 ### General summary and conclusions
 
 Summarize here what you've done, whether you solved the tasks, what difficulties you had etc.
+
 
 
