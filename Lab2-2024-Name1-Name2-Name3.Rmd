@@ -22,6 +22,11 @@ output:
 
 ------------------------------------------------------------------------
 
+```{r}
+id <- 5
+set.seed(id)
+```
+
 ### Task 1
 
 #### In this task, we discuss the $[7,4]$ Hamming code and investigate its reliability. That coding system can correct single errors in the transmission of $4$-bit messages and proceeds as follows:
@@ -66,11 +71,6 @@ $$
 #### First, we set the **id** of the team and define the probability $p$ and the generator and parity-check matrices $G$ and $H$
 
 ```{r}
-# your team id number 
-                          ###
-id <- 5                 ### Change to the correct id!
-                          ###
-set.seed(id)
 p <- id/100
 # matrices G and H
 G <- matrix(c(1, 1, 1, 0, 0, 0, 0,
@@ -146,7 +146,7 @@ decoded_messages <- decode(received) # Decode messages
 ```
 
 ```{r}
-incorrectly_decoded_messages <- sum(apply(xor(messages, decoded_messages), 1, any))
+incorrectly_decoded_messages <- N-sum(apply(xor(messages, decoded_messages), 1, any))
 p_hat = incorrectly_decoded_messages/N
 print(p_hat)
 ```
@@ -163,7 +163,7 @@ Let $(x_1, x_2, ... , x_N)$ be realization of $(X_1, X_2, ... , X_N)$, then $\ha
 
 Then the true probability of the correct decoding is $p* = E(X_i)$
 
-Message can be decoded incorrectly only if there were 1 or 0 errors in it. Each encoded message consist of 7 bits, so probability of 2 or more errors in it is $p* = E(X_i) = 1-(1-p)^7-\binom{7}{1}p(1-p)^6 \approx 0.04438$, $p$ is probability of an error.
+Message can be decoded incorrectly only if there were 1 or 0 errors in it. Each encoded message consist of 7 bits, so probability of 2 or more errors in it is $p* = E(X_i) = 1-(1-p)^7-\binom{7}{1}p(1-p)^6 \approx 0.955781$, $p$ is probability of an error.
 
 By the strong law of large the sample mean of i.i.d. random variables converges almost surely to the expected value as $N \to \infty$
 
@@ -814,21 +814,75 @@ curve(pnorm(x, mean = mu, sd = sigma), col = "red", lwd = 2, add = TRUE)
 
         -   Uniformly distributed
 
-    2.  What are the expected value and variance of X? Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ to calculate the values of sample mean $\overline{\mathbf{X}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(x_i - \overline{x})^{2}}}{n-1}$. Comment on the results;
+Each coin toss is a Bernoulli trial with a success probability of $\frac{1}{2}$. The tosses are independent of one another. A round consists of three such independent Bernoulli trials, so $X$ follows a binomial distribution: $X \sim \mathrm{Bin}(3, \tfrac{1}{2})$
 
-        ```{r}
-        # YOUR CODE HERE
-        ```
+2.  What are the expected value and variance of X? Simulate realizations $x_1,x_2,\dots,x_{100}$ of $X$ to calculate the values of sample mean $\overline{\mathbf{X}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(x_i - \overline{x})^{2}}}{n-1}$. Comment on the results;
 
-    3.  What are the expected value and variance of Y? Simulate realizations $y_1,y_2,\dots,y_{100}$ of $Y$ to calculate the values of sample mean $\overline{\mathbf{Y}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(y_i - \overline{y})^{2}}}{n-1}$. Comment on the results;
+**Expectation**\
+For a binomial random variable $X\sim\operatorname{Bin}(n,p)$ the expectation is\
+$$
+\mathbb{E}[X]=np
+$$ Here\
+$$
+\mathbb{E}[X]=3\cdot \tfrac{1}{2}= \tfrac{3}{2}=1.5
+$$
 
-        ```{r}
-        # YOUR CODE HERE
-        ```
+**Variance**\
+For a binomial random variable the variance is\
+$$
+\operatorname{Var}(X)=np(1-p)
+$$ Here\
+$$
+\operatorname{Var}(X)=3\cdot \tfrac{1}{2}\cdot \tfrac{1}{2}=\tfrac{3}{4}=0.75
+$$
 
-**Do not forget to include several sentences summarizing your work and the conclusions you have made!**
+```{r}
+N <- 100 # size of the sample
+n <- 3
+p <- 0.5
 
-------------------------------------------------------------------------
+sample <- rbinom(N, n, p)
+sample_mean <- sum(sample)/N
+sample_variance <- sum(((sample-sample_mean)**2)/(N-1))
+
+cat("Sample mean: ", sample_mean, "\n")
+cat("Sample variance: ", sample_variance)
+```
+
+3.  What are the expected value and variance of Y? Simulate realizations $y_1,y_2,\dots,y_{100}$ of $Y$ to calculate the values of sample mean $\overline{\mathbf{Y}}$ and sample variance $s^2 = \frac{\sum_{i=1}^{n}{(y_i - \overline{y})^{2}}}{n-1}$. Comment on the results;
+
+**Expectation**\
+Using linearity of expectation,\
+$$
+\mathbb{E}[Y] = 0.5\,\mathbb{E}[X] - 1.
+$$ Since $\mathbb{E}[X] = 1.5$,\
+$$
+\mathbb{E}[Y] = 0.5 \cdot 1.5 - 1 = -0.25.
+$$
+
+**Variance**\
+For a linear transformation $Y = aX + b$,\
+$$
+\operatorname{Var}(Y) = a^2\,\operatorname{Var}(X).
+$$ Here $a = 0.5$ and $\operatorname{Var}(X) = 0.75$, so\
+$$
+\operatorname{Var}(Y) = (0.5)^2 \cdot 0.75 = 0.1875.
+$$
+
+```{r}
+N <- 100 # size of the sample
+n <- 3
+p <- 0.5
+
+sample <- 0.5*rbinom(N, n, p)-1
+sample_mean <- sum(sample)/N
+sample_variance <- sum(((sample-sample_mean)**2)/(N-1))
+
+cat("Sample mean: ", sample_mean, "\n")
+cat("Sample variance: ", sample_variance)
+```
+
+In this task, we calculated the theoretical mean and variance of two random variables, then performed a simulation to estimate the sample mean and variance from generated data. The simulated values were close to the theoretical ones, especially when we increased sample size. This result is consistent with the Central Limit Theorem, which states that as the sample size grows, the sample mean and variance approach their true values.
 
 ### General summary and conclusions
 
